@@ -96,7 +96,8 @@ bool App::InitGLFW()
 	{
 		glfwTerminate();
 		return EXIT_FAILURE;
-	}
+	}	
+
 	return true;
 }
 

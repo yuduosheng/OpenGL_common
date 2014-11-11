@@ -39,13 +39,13 @@ protected:
 	bool InitGLFW();
 	bool InitGL();
 
-private:
-	string mTitle;
-	GLFWwindow* window;
-	int mWidth;
-	int mHeight;
-	bool isTransparency;
-	bool isLineSmooth;
+protected:
+	string              mTitle;
+	GLFWwindow          *window;
+	int                 mWidth;
+	int                 mHeight;
+	bool                isTransparency;
+	bool                isLineSmooth;
 };
 
 #endif // APP_H
