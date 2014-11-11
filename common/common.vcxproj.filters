@@ -27,4 +27,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="common.fs.glsl" />
+    <None Include="common.vs.glsl" />
+  </ItemGroup>
 </Project>

@@ -107,8 +107,8 @@ bool App::InitGL()
 	glPolygonMode(GL_BACK, GL_FILL);
 
 	// enable depth testing
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
+	//glEnable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LESS);
 
 	glEnable(GL_NORMALIZE);
 
