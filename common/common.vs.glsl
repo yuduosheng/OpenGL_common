@@ -1,14 +1,16 @@
-#version 430 core
-
-uniform mat4 mvp;
-uniform int vid_offset = 0;
-
-void main(void)
-{
-    const vec4 vertices[] = vec4[](vec4(-0.5, -0.5, 0.0, 1.0),
-                                   vec4( 0.5, -0.5, 0.0, 1.0),
-                                   vec4( 0.5,  0.5, 0.0, 1.0),
-                                   vec4(-0.5,  0.5, 0.0, 1.0));
-
-    gl_Position = mvp * vertices[(gl_VertexID + vid_offset) % 4];
-}
+#version 420 core                                            
+                                                             
+in vec4 position;                                            
+                                                             
+out VS_OUT                                                   
+{                                                            
+    vec4 color;                                              
+} vs_out;                                                    
+                                                             
+uniform mat4 mvp;                                            
+                                                             
+void main(void)                                              
+{                                                            
+    gl_Position = mvp * position;                            
+    vs_out.color = position * 2.0 + vec4(0.5, 0.5, 0.5, 0.0);
+}                                   

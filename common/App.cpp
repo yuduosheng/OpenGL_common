@@ -79,6 +79,13 @@ bool App::Init()
 	glfwSetScrollCallback(window, mousewheel_callback);
 	glfwSetWindowSizeCallback(window, resize_callback);
 
+	// Initialize GLEW
+	glewExperimental = true; // Needed in core profile
+	if (glewInit() != GLEW_OK) {
+		cout << "Failed to initialize GLEW" << endl;
+		return false;
+	}
+
 	if (!InitGL())
 		return false;
 
@@ -103,6 +110,7 @@ bool App::InitGLFW()
 
 bool App::InitGL()
 {
+	/*
 	// polygon fill mode
 	glPolygonMode(GL_BACK, GL_FILL);
 
@@ -135,7 +143,7 @@ bool App::InitGL()
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
+	*/
 	return true;
 }
 void App::onResize(GLFWwindow* window, int w, int h)

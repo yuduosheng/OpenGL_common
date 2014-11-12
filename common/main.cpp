@@ -1,5 +1,51 @@
 #include "APP.h"
+namespace shader
+{
+	GLuint loadShader(const char * filename, GLenum shader_type, bool check_errors)
+	{
+		GLuint result = 0;
+		string shaderCode = "";
+		ifstream codeStream(filename, ios::in);
 
+		if (codeStream.is_open())
+		{
+			string Line = "";
+			while (getline(codeStream, Line))
+			{
+				shaderCode +=  Line;
+				shaderCode += "\n";
+			}
+				
+			codeStream.close();
+		}
+
+		result = glCreateShader(shader_type);
+
+		// Compile Vertex Shader
+		cout << "Compiling shader : " << filename << endl;
+		char const * codePointer = shaderCode.c_str();
+		cout << shaderCode.c_str() << endl;
+		glShaderSource(result, 1, &codePointer, NULL);
+		glCompileShader(result);
+
+		if (check_errors)
+		{
+			GLint status = 0;
+			glGetShaderiv(result, GL_COMPILE_STATUS, &status);
+
+			if (!status)
+			{
+				char buffer[4096];
+				glGetShaderInfoLog(result, 4096, NULL, buffer);
+
+				cout << filename << buffer << endl;
+			}
+		}
+
+		return result;
+	}
+
+}
 class glfwTest : public App
 {
 public:
@@ -18,7 +64,7 @@ public:
 
 private:
 	void buildGeometryBuffers();
-	GLuint buildShader();
+	void buildShader();
 private:
 	GLuint                  mVBuffer;
 	GLuint                  mIBuffer;
@@ -51,7 +97,8 @@ bool glfwTest::Init()
 {
 	if (!App::Init())
 		return false;
-	//program = buildShader();
+	buildShader();
+	buildGeometryBuffers();
 	return true;
 }
 
@@ -62,33 +109,24 @@ void glfwTest::onResize(GLFWwindow* window, int w, int h)
 
 void glfwTest::UpdateScene()
 {
-	float ratio;
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	ratio = width / (float)height;
-	glViewport(0, 0, width, height);
-	glClear(GL_COLOR_BUFFER_BIT);
+	static const GLfloat green[] = { 0.0f, 0.25f, 0.0f, 1.0f };
+	static const GLfloat one = 1.0f;
 
-	/*
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glRotatef((float)glfwGetTime() * 50.f, 0.f, 0.f, 1.f);
-    */
+	glViewport(0, 0, mWidth, mHeight);
+	glClearBufferfv(GL_COLOR, 0, green);
+	glClearBufferfv(GL_DEPTH, 0, &one);
+
 	glUseProgram(program);
 
-	vmath::vec3 pos = vmath::vec3(5.0f, 5.0f, 5.0f);
-	vmath::vec3 target = vmath::vec3(0.0f);
-	vmath::vec3 up = vmath::vec3(0.0f, 1.0f, 0.0f);
+	vec3 pos = vec3(1.0f, 1.0f, 1.0f);
+	vec3 target = vec3(0.0f);
+	vec3 up = vec3(0.0f, 1.0f, 0.0f);
 
-    vmath::mat4 model = vmath::mat4::identity();
-	vmath::mat4 view = vmath::lookat(pos, target, up);
-	vmath::mat4 proj = vmath::perspective(60.0f, (float)width / (float)height, 0.1f, 1000.0f);
-	vmath::mat4 mvp = model * view * proj;
-
-	glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, mvp);	
+	mat4 Projection = perspective(45.0f, (float)mWidth/mHeight, 0.1f, 100.f);
+	mat4 View = lookAt(pos, target, up);
+	mat4 Model = scale(mat4(1.0f), vec3(0.5f)); 
+	mat4 MVP = Projection * View * Model; 
+	glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, glm::value_ptr(MVP));
 }
 
 void glfwTest::Rendering()
@@ -113,19 +151,10 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 }
 void glfwTest::buildGeometryBuffers()
 {
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 	// Create vertex buffer
-	static const GLfloat vertices[] =
-	{
-		-0.25f, -0.25f, -0.25f,
-		-0.25f, 0.25f, -0.25f,
-		0.25f, -0.25f, -0.25f,
-		0.25f, 0.25f, -0.25f,
-		0.25f, -0.25f, 0.25f,
-		0.25f, 0.25f, 0.25f,
-		-0.25f, -0.25f, 0.25f,
-		-0.25f, 0.25f, 0.25f,
-	};
-	static const GLushort indices[] =
+	static const GLushort vertex_indices[] =
 	{
 		0, 1, 2,
 		2, 1, 3,
@@ -141,24 +170,47 @@ void glfwTest::buildGeometryBuffers()
 		7, 3, 1
 	};
 
+	static const GLfloat vertex_positions[] =
+	{
+		-0.25f, -0.25f, -0.25f,
+		-0.25f, 0.25f, -0.25f,
+		0.25f, -0.25f, -0.25f,
+		0.25f, 0.25f, -0.25f,
+		0.25f, -0.25f, 0.25f,
+		0.25f, 0.25f, 0.25f,
+		-0.25f, -0.25f, 0.25f,
+		-0.25f, 0.25f, 0.25f,
+	};
+
 	glGenBuffers(1, &mVBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, mVBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
+	glBufferData(GL_ARRAY_BUFFER,
+		sizeof(vertex_positions),
+		vertex_positions,
+		GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(0);
 
 	glGenBuffers(1, &mIBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		sizeof(vertex_indices),
+		vertex_indices,
+		GL_STATIC_DRAW);
+
+	glEnable(GL_CULL_FACE);
+	// glFrontFace(GL_CW);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 }
-GLuint glfwTest::buildShader()
-{
+void glfwTest::buildShader()
+{   
 	GLuint vs;
 	GLuint fs;
 
-	vs = shader::load("common.vs.glsl", GL_VERTEX_SHADER, true);
-	fs = shader::load("conmon.fs.glsl", GL_FRAGMENT_SHADER, true);
+	vs = shader::loadShader("common.vs.glsl", GL_VERTEX_SHADER, true);
+	fs = shader::loadShader("common.fs.glsl", GL_FRAGMENT_SHADER, true);
 
 	if (program)
 		glDeleteProgram(program);
@@ -166,7 +218,63 @@ GLuint glfwTest::buildShader()
 	program = glCreateProgram();
 	glAttachShader(program, vs);
 	glAttachShader(program, fs);
+
 	glLinkProgram(program);
 
 	mvp_matrix = glGetUniformLocation(program, "mvp");
+	/*
+	static const char * vs_source[] =
+	{
+		"#version 420 core                                                  \n"
+		"                                                                   \n"
+		"in vec4 position;                                                  \n"
+		"                                                                   \n"
+		"out VS_OUT                                                         \n"
+		"{                                                                  \n"
+		"    vec4 color;                                                    \n"
+		"} vs_out;                                                          \n"
+		"                                                                   \n"
+		"uniform mat4 mvp;                                                  \n"
+		"                                                                   \n"
+		"void main(void)                                                    \n"
+		"{                                                                  \n"
+		"    gl_Position = mvp * position;                                  \n"
+		"    vs_out.color = position * 2.0 + vec4(0.5, 0.5, 0.5, 0.0);      \n"
+		"}                                                                  \n"
+	};
+
+	static const char * fs_source[] =
+	{
+		"#version 420 core                                                  \n"
+		"                                                                   \n"
+		"out vec4 color;                                                    \n"
+		"                                                                   \n"
+		"in VS_OUT                                                          \n"
+		"{                                                                  \n"
+		"    vec4 color;                                                    \n"
+		"} fs_in;                                                           \n"
+		"                                                                   \n"
+		"void main(void)                                                    \n"
+		"{                                                                  \n"
+		"    color = fs_in.color;                                           \n"
+		"}                                                                  \n"
+	};
+
+	program = glCreateProgram();
+
+	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vs, 1, vs_source, NULL);
+	glCompileShader(vs);
+
+	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fs, 1, fs_source, NULL);
+	glCompileShader(fs);
+
+
+	glAttachShader(program, vs);
+	glAttachShader(program, fs);
+
+	glLinkProgram(program);
+
+	mvp_matrix = glGetUniformLocation(program, "mvp");*/
 }
