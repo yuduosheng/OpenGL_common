@@ -1,4 +1,6 @@
 #include "APP.h"
+#include "camera.h"
+
 namespace shader
 {
 	GLuint loadShader(const char * filename, GLenum shader_type, bool check_errors)
@@ -24,7 +26,7 @@ namespace shader
 		// Compile Vertex Shader
 		cout << "Compiling shader : " << filename << endl;
 		char const * codePointer = shaderCode.c_str();
-		cout << shaderCode.c_str() << endl;
+
 		glShaderSource(result, 1, &codePointer, NULL);
 		glCompileShader(result);
 
@@ -35,7 +37,7 @@ namespace shader
 
 			if (!status)
 			{
-				char buffer[4096];
+				char buffer[4096];    
 				glGetShaderInfoLog(result, 4096, NULL, buffer);
 
 				cout << filename << buffer << endl;
@@ -71,6 +73,8 @@ private:
 	GLuint                  vao;
 	GLuint                  program;
 	GLint                   mvp_matrix;
+
+	TrackballCamera         mCamera;
 };
 
 int main(void)
@@ -85,7 +89,7 @@ int main(void)
 }
 
 glfwTest::glfwTest() : App(), mVBuffer(0),
-mIBuffer(0), vao(0), program(0)
+mIBuffer(0), vao(0), program(0), mCamera(mWidth, mHeight)
 {
 }
 
@@ -117,15 +121,16 @@ void glfwTest::UpdateScene()
 	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	glUseProgram(program);
-
-	vec3 pos = vec3(1.0f, 1.0f, 1.0f);
+	
+	/*vec3 pos = vec3(1.0f, 1.0f, 1.0f);
 	vec3 target = vec3(0.0f);
 	vec3 up = vec3(0.0f, 1.0f, 0.0f);
 
 	mat4 Projection = perspective(45.0f, (float)mWidth/mHeight, 0.1f, 100.f);
 	mat4 View = lookAt(pos, target, up);
 	mat4 Model = scale(mat4(1.0f), vec3(0.5f)); 
-	mat4 MVP = Projection * View * Model; 
+	mat4 MVP = Projection * View * Model; */
+    mat4 MVP = mCamera.getMVP();
 	glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, glm::value_ptr(MVP));
 }
 
@@ -139,11 +144,31 @@ void glfwTest::onMouseWheel(GLFWwindow* window, double x, double y)
 }
 void glfwTest::onMouseMove(GLFWwindow* window, double xd, double yd)
 {
-
+	double x = xd;
+	double y = yd;
+	if (mCamera.IsMouseLButtonDown())
+	{
+		glfwGetCursorPos(window, &xd, &yd);
+		mCamera.SetCurMousePosition(xd, yd);
+		mCamera.computeQuat();
+		mCamera.setMmworld();
+	}
 }
 void glfwTest::onMouseButton(GLFWwindow* window, int button, int action, int mods)
 {
+	double xd, yd;
 
+	if ((button == GLFW_MOUSE_BUTTON_1) && (action == GLFW_PRESS))
+	{
+		mCamera.SetMouseLButtonStat(true);
+		glfwGetCursorPos(window, &xd, &yd);
+		mCamera.initMousePosition(xd, yd);
+
+	}
+	else if ((button == GLFW_MOUSE_BUTTON_1) && (action == GLFW_RELEASE))
+	{
+		mCamera.SetMouseLButtonStat(false);
+	}
 }
 void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -221,60 +246,8 @@ void glfwTest::buildShader()
 
 	glLinkProgram(program);
 
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+
 	mvp_matrix = glGetUniformLocation(program, "mvp");
-	/*
-	static const char * vs_source[] =
-	{
-		"#version 420 core                                                  \n"
-		"                                                                   \n"
-		"in vec4 position;                                                  \n"
-		"                                                                   \n"
-		"out VS_OUT                                                         \n"
-		"{                                                                  \n"
-		"    vec4 color;                                                    \n"
-		"} vs_out;                                                          \n"
-		"                                                                   \n"
-		"uniform mat4 mvp;                                                  \n"
-		"                                                                   \n"
-		"void main(void)                                                    \n"
-		"{                                                                  \n"
-		"    gl_Position = mvp * position;                                  \n"
-		"    vs_out.color = position * 2.0 + vec4(0.5, 0.5, 0.5, 0.0);      \n"
-		"}                                                                  \n"
-	};
-
-	static const char * fs_source[] =
-	{
-		"#version 420 core                                                  \n"
-		"                                                                   \n"
-		"out vec4 color;                                                    \n"
-		"                                                                   \n"
-		"in VS_OUT                                                          \n"
-		"{                                                                  \n"
-		"    vec4 color;                                                    \n"
-		"} fs_in;                                                           \n"
-		"                                                                   \n"
-		"void main(void)                                                    \n"
-		"{                                                                  \n"
-		"    color = fs_in.color;                                           \n"
-		"}                                                                  \n"
-	};
-
-	program = glCreateProgram();
-
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vs, 1, vs_source, NULL);
-	glCompileShader(vs);
-
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, fs_source, NULL);
-	glCompileShader(fs);
-
-
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
-
-	glLinkProgram(program);
-
-	mvp_matrix = glGetUniformLocation(program, "mvp");*/
 }
