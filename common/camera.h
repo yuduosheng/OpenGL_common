@@ -18,7 +18,7 @@ public:
 	void computeQuat();
 
 	mat4 getMVP()                                         { return mProj * mView * mmWorld; }
-	void setMmworld()                                     { mmWorld *= mat4_cast(mQuat); };
+	void setMmworld()                                     { mmWorld = mat4_cast(mQuat) * mmWorld; };
 	void initMousePosition(float x, float y)              { SetCurMousePosition(x, y); SetPreMousePosition(x, y); }
 	void SetMouseLButtonStat(bool stat)                   { mbMouseLButtonDown = stat; }
 	void SetMouseLWheelStat(bool stat)                    { mbMouseWheelRoll = stat; }
