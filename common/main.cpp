@@ -1,5 +1,6 @@
-#include "APP.h"
 #include "camera.h"
+#include "object.h"
+#include <png.h>
 
 namespace shader
 {
@@ -48,6 +49,60 @@ namespace shader
 	}
 
 }
+/*
+void capture(GLFWwindow *window)
+{
+	const char filepath[] = "./output.png";
+	png_bytep raw1D;
+	png_bytepp raw2D;
+	int i;
+	int width;
+	int height;
+	glfwGetWindowSize(window, &width, &height);
+	// 構造体確保
+	FILE *fp = fopen(filepath, "wb");
+	png_structp pp = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	png_infop ip = png_create_info_struct(pp);
+
+
+	// 書き込み準備
+	png_init_io(pp, fp);
+	png_set_IHDR(pp, ip, width, height,
+		8, // 8bit以外にするなら変える
+		PNG_COLOR_TYPE_RGBA, // RGBA以外にするなら変える
+		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+	// ピクセル領域確保
+	raw1D = (png_bytep)malloc(height * png_get_rowbytes(pp, ip));
+	raw2D = (png_bytepp)malloc(height * sizeof(png_bytep));
+	for (i = 0; i < height; i++)
+		raw2D[i] = &raw1D[i*png_get_rowbytes(pp, ip)];
+	// 画像のキャプチャ
+	glReadBuffer(GL_FRONT);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // 初期値は4
+	glReadPixels(0, 0, width, height,
+		GL_RGBA, // RGBA以外にするなら変える
+		GL_UNSIGNED_BYTE, // 8bit以外にするなら変える
+		(void*)raw1D);
+	// 上下反転
+	for (i = 0; i < height / 2; i++){
+		png_bytep swp = raw2D[i];
+		raw2D[i] = raw2D[height - i - 1];
+		raw2D[height - i - 1] = swp;
+	}
+	// 書き込み
+	png_write_info(pp, ip);
+	png_write_image(pp, raw2D);
+	png_write_end(pp, ip);
+	// 開放
+	png_destroy_write_struct(&pp, &ip);
+	fclose(fp);
+	free(raw1D);
+	free(raw2D);
+
+	printf("write out screen capture to '%s'\n", filepath);
+}
+*/
 class glfwTest : public App
 {
 public:
@@ -74,6 +129,10 @@ private:
 	GLuint                  program;
 	GLint                   mvp_matrix;
 
+	bool                    bOne;
+	bool                    bTwo;
+	object                  one;
+	object                  two;
 	TrackballCamera         mCamera;
 };
 
@@ -89,8 +148,10 @@ int main(void)
 }
 
 glfwTest::glfwTest() : App(), mVBuffer(0),
-mIBuffer(0), vao(0), program(0), mCamera(mWidth, mHeight)
+mIBuffer(0), vao(0), program(0), mCamera(mWidth, mHeight),
+bOne(true), bTwo(false)
 {
+	
 }
 
 glfwTest::~glfwTest()
@@ -113,11 +174,11 @@ void glfwTest::onResize(GLFWwindow* window, int w, int h)
 
 void glfwTest::UpdateScene()
 {
-	static const GLfloat green[] = { 0.0f, 0.25f, 0.0f, 1.0f };
+	static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	static const GLfloat one = 1.0f;
 
 	glViewport(0, 0, mWidth, mHeight);
-	glClearBufferfv(GL_COLOR, 0, green);
+	glClearBufferfv(GL_COLOR, 0, black);
 	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	glUseProgram(program);
@@ -136,7 +197,15 @@ void glfwTest::UpdateScene()
 
 void glfwTest::Rendering()
 {
-	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
+	//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
+	//glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPointSize(4);
+	if (bOne)
+	    one.render();
+	if (bTwo)
+		two.render();
+	
 }
 void glfwTest::onMouseWheel(GLFWwindow* window, double x, double y)
 {
@@ -173,11 +242,40 @@ void glfwTest::onMouseButton(GLFWwindow* window, int button, int action, int mod
 void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	App::onKey(window, key, scancode, action, mods);
+	//capture
+	if ((key == GLFW_KEY_P) && (action == GLFW_PRESS))
+	{ 
+		//capture(window);
+		cout << "capture over." << endl;
+	}
+	if ((key == GLFW_KEY_W) && (action == GLFW_PRESS))
+	{
+
+	}
+	if ((key == GLFW_KEY_1) && (action == GLFW_PRESS))
+	{
+		cout << "press 1." << endl;
+		if (bOne)
+		{
+			bOne = false;
+			bTwo = true;
+		}
+		else
+		if (bTwo)
+		{
+			bOne = true;
+			bTwo = false;
+		}
+	}
+		
 }
 void glfwTest::buildGeometryBuffers()
-{
+{	
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
+	one.readFile("objects/r01.obj");
+	two.readFile("objects/r02.obj");
+	/*
 	// Create vertex buffer
 	static const GLushort vertex_indices[] =
 	{
@@ -222,8 +320,39 @@ void glfwTest::buildGeometryBuffers()
 		sizeof(vertex_indices),
 		vertex_indices,
 		GL_STATIC_DRAW);
+*/
+	/*
+	static const GLuint vertex_indices[] =
+	{
+		1, 2, 4,
+		1, 4, 3,
+		1, 3, 2,
+		2, 3, 4
+	};
 
-	glEnable(GL_CULL_FACE);
+	static const GLfloat vertex_positions[] =
+	{
+		-0.81649658, -0.47140452, 0.33333333,
+		0.81649658, -0.47140452, 0.33333333,
+		0.00000000, 0.00000000, -1.00000000,
+		0.00000000, 0.94280904, 0.33333333,
+	};
+	glGenBuffers(1, &mVBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, mVBuffer);
+	glBufferData(GL_ARRAY_BUFFER,
+		sizeof(vertex_positions),
+		vertex_positions,
+		GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
+
+	glGenBuffers(1, &mIBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		sizeof(vertex_indices),
+		vertex_indices,
+		GL_STATIC_DRAW);
+*/
 	// glFrontFace(GL_CW);
 
 	glEnable(GL_DEPTH_TEST);

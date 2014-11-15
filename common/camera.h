@@ -24,8 +24,8 @@ public:
 	void SetMouseLWheelStat(bool stat)                    { mbMouseWheelRoll = stat; }
 	void SetMouseRButtonStat(bool stat)                   { mbMouseRButtonDown = stat; }
 
-	void SetCurMousePosition(float x, float y)           { curMousePosition.x = x; curMousePosition.y = y; cout << x << " " << y << endl; }
-	void SetPreMousePosition(float x, float y)             { preMousePosition.x = x; preMousePosition.y = y; cout << x << " " << y << endl; }
+	void SetCurMousePosition(float x, float y)           { curMousePosition.x = x; curMousePosition.y = y; }
+	void SetPreMousePosition(float x, float y)             { preMousePosition.x = x; preMousePosition.y = y; }
 
 	void SetWindow(float w, float h)                      { windowWidth = w; windowHeight = h; }
 

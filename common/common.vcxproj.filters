@@ -24,6 +24,9 @@
     <ClCompile Include="camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h">
@@ -32,9 +35,29 @@
     <ClInclude Include="camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="common.fs.glsl" />
     <None Include="common.vs.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="objects\r01.obj">
+      <Filter>Resource Files</Filter>
+    </Object>
+    <Object Include="objects\r02.obj">
+      <Filter>Resource Files</Filter>
+    </Object>
+    <Object Include="objects\r03.obj">
+      <Filter>Resource Files</Filter>
+    </Object>
+    <Object Include="objects\r04.obj">
+      <Filter>Resource Files</Filter>
+    </Object>
+    <Object Include="objects\r05.obj">
+      <Filter>Resource Files</Filter>
+    </Object>
   </ItemGroup>
 </Project>
