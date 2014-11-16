@@ -1,4 +1,4 @@
-#include "camera.h"
+ï»¿#include "camera.h"
 #include "object.h"
 #include <png.h>
 
@@ -49,7 +49,7 @@ namespace shader
 	}
 
 }
-/*
+
 void capture(GLFWwindow *window)
 {
 	const char filepath[] = "./output.png";
@@ -59,42 +59,39 @@ void capture(GLFWwindow *window)
 	int width;
 	int height;
 	glfwGetWindowSize(window, &width, &height);
-	// \‘¢‘ÌŠm•Û
+	// æ§‹é€ ä½“ç¢ºä¿
 	FILE *fp = fopen(filepath, "wb");
 	png_structp pp = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	png_infop ip = png_create_info_struct(pp);
-
-
-	// ‘‚«‚İ€”õ
+	// æ›¸ãè¾¼ã¿æº–å‚™
 	png_init_io(pp, fp);
 	png_set_IHDR(pp, ip, width, height,
-		8, // 8bitˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
-		PNG_COLOR_TYPE_RGBA, // RGBAˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
+		8, // 8bitä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
+		PNG_COLOR_TYPE_RGBA, // RGBAä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
 		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-	// ƒsƒNƒZƒ‹—ÌˆæŠm•Û
+	// ãƒ”ã‚¯ã‚»ãƒ«é ˜åŸŸç¢ºä¿
 	raw1D = (png_bytep)malloc(height * png_get_rowbytes(pp, ip));
 	raw2D = (png_bytepp)malloc(height * sizeof(png_bytep));
 	for (i = 0; i < height; i++)
 		raw2D[i] = &raw1D[i*png_get_rowbytes(pp, ip)];
-	// ‰æ‘œ‚ÌƒLƒƒƒvƒ`ƒƒ
+	// ç”»åƒã®ã‚­ãƒ£ãƒ—ãƒãƒ£
 	glReadBuffer(GL_FRONT);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // ‰Šú’l‚Í4
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // åˆæœŸå€¤ã¯4
 	glReadPixels(0, 0, width, height,
-		GL_RGBA, // RGBAˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
-		GL_UNSIGNED_BYTE, // 8bitˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
+		GL_RGBA, // RGBAä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
+		GL_UNSIGNED_BYTE, // 8bitä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
 		(void*)raw1D);
-	// ã‰º”½“]
+	// ä¸Šä¸‹åè»¢
 	for (i = 0; i < height / 2; i++){
 		png_bytep swp = raw2D[i];
 		raw2D[i] = raw2D[height - i - 1];
 		raw2D[height - i - 1] = swp;
 	}
-	// ‘‚«‚İ
+	// æ›¸ãè¾¼ã¿
 	png_write_info(pp, ip);
 	png_write_image(pp, raw2D);
 	png_write_end(pp, ip);
-	// ŠJ•ú
+	// é–‹æ”¾
 	png_destroy_write_struct(&pp, &ip);
 	fclose(fp);
 	free(raw1D);
@@ -102,7 +99,7 @@ void capture(GLFWwindow *window)
 
 	printf("write out screen capture to '%s'\n", filepath);
 }
-*/
+
 class glfwTest : public App
 {
 public:
@@ -245,7 +242,7 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 	//capture
 	if ((key == GLFW_KEY_P) && (action == GLFW_PRESS))
 	{ 
-		//capture(window);
+		capture(window);
 		cout << "capture over." << endl;
 	}
 	if ((key == GLFW_KEY_W) && (action == GLFW_PRESS))

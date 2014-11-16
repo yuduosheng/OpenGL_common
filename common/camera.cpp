@@ -33,7 +33,7 @@ void TrackballCamera::SetProj(float fFov, float fAspect, float fNearPlane, float
 
 void TrackballCamera::computeQuat()
 {
-	float d, ar, as;
+	float d, as;
 	vec3 preVec, curVec, vMove, axis;
 
 	preVec.x = (2.0f * preMousePosition.x / windowWidth - 1.0f) / mProj[0][0];
