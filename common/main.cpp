@@ -217,7 +217,14 @@ void glfwTest::onMouseMove(GLFWwindow* window, double xd, double yd)
 		glfwGetCursorPos(window, &xd, &yd);
 		mCamera.SetCurMousePosition(xd, yd);
 		mCamera.computeQuat();
-		mCamera.setMmworld();
+		mCamera.setMmworldQuat();
+	}
+	if (mCamera.IsMouseRButtonDown())
+	{
+		glfwGetCursorPos(window, &xd, &yd);
+		mCamera.SetCurMousePosition(xd, yd);
+		mCamera.computeTran();
+		mCamera.setMmworldTran();
 	}
 }
 void glfwTest::onMouseButton(GLFWwindow* window, int button, int action, int mods)
@@ -234,6 +241,18 @@ void glfwTest::onMouseButton(GLFWwindow* window, int button, int action, int mod
 	else if ((button == GLFW_MOUSE_BUTTON_1) && (action == GLFW_RELEASE))
 	{
 		mCamera.SetMouseLButtonStat(false);
+	}
+
+	if ((button == GLFW_MOUSE_BUTTON_2) && (action == GLFW_PRESS))
+	{
+		mCamera.SetMouseRButtonStat(true);
+		glfwGetCursorPos(window, &xd, &yd);
+		mCamera.initMousePosition(xd, yd);
+
+	}
+	else if ((button == GLFW_MOUSE_BUTTON_2) && (action == GLFW_RELEASE))
+	{
+		mCamera.SetMouseRButtonStat(false);
 	}
 }
 void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)

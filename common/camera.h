@@ -16,16 +16,18 @@ public:
 	void                SetView(vec3 pEye, vec3 pLookat);
 	void                SetProj(float fFov, float fAspect, float fNearPlane, float fFarPlane);
 	void computeQuat();
+	void computeTran();
 
 	mat4 getMVP()                                         { return mProj * mView * mmWorld; }
-	void setMmworld()                                     { mmWorld = mat4_cast(mQuat) * mmWorld; };
+	void setMmworldQuat()                                 { mmWorld = mat4_cast(mQuat) * mmWorld; };
+	void setMmworldTran()                                 { mmWorld = mTran * mmWorld; };
 	void initMousePosition(float x, float y)              { SetCurMousePosition(x, y); SetPreMousePosition(x, y); }
 	void SetMouseLButtonStat(bool stat)                   { mbMouseLButtonDown = stat; }
 	void SetMouseLWheelStat(bool stat)                    { mbMouseWheelRoll = stat; }
 	void SetMouseRButtonStat(bool stat)                   { mbMouseRButtonDown = stat; }
 
-	void SetCurMousePosition(float x, float y)           { curMousePosition.x = x; curMousePosition.y = y; }
-	void SetPreMousePosition(float x, float y)             { preMousePosition.x = x; preMousePosition.y = y; }
+	void SetCurMousePosition(float x, float y)            { curMousePosition.x = x; curMousePosition.y = y; }
+	void SetPreMousePosition(float x, float y)            { preMousePosition.x = x; preMousePosition.y = y; }
 
 	void SetWindow(float w, float h)                      { windowWidth = w; windowHeight = h; }
 
@@ -37,6 +39,7 @@ protected:
 	vec3 mCenter;
 	float mRadius;
 	quat mQuat;
+	mat4 mTran;
 
 	mat4 mView;
 	mat4 mProj;
