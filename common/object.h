@@ -12,12 +12,17 @@ public:
 	~object();
 
 	void readFile(const char *filename);
+	void readFileIndice4(const char *filename);
+	void readFileIndice5(const char *filename);
 	void render();
+	void renderQuad();
+	void renderPolygon();
 protected:
 	GLuint                  mVBuffer;
 	GLuint                  mIBuffer;
-	vector<glm::vec3>       vertex;
-	vector<glm::uvec3>      indices;
+	vector<vec3>            vertex;
+	vector<uint>            indices;
+	uint                    mIndiceNum;
 };
 
 

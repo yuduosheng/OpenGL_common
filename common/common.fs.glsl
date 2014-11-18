@@ -9,6 +9,6 @@ in VS_OUT
                         
 void main(void)         
 {                       
-    //color = fs_in.color; 
-	color = vec4(1.0f, 1.0f, 1.0f, 1.0f); 
+    color = fs_in.color; 
+	//color = vec4(1.0f, 1.0f, 1.0f, 1.0f); 
 }  

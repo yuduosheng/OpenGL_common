@@ -131,12 +131,21 @@ private:
 	bool                    bThree;
 	bool                    bFour;
 	bool                    bFive;
+
 	object                  one;
 	object                  two;
 	object                  three;
 	object                  four;
 	object                  five;
 	TrackballCamera         mCamera;
+
+	enum PolygonMode
+	{
+		FILL,
+		LINE,
+		POINT
+	};
+	PolygonMode             mPM;
 };
 
 int main(void)
@@ -154,7 +163,7 @@ glfwTest::glfwTest() : App(), mVBuffer(0),
 mIBuffer(0), vao(0), program(0), mCamera(mWidth, mHeight),
 bOne(true), bTwo(false), bThree(false), bFour(false), bFive(false)
 {
-	
+	mPM = FILL;
 }
 
 glfwTest::~glfwTest()
@@ -200,19 +209,31 @@ void glfwTest::UpdateScene()
 
 void glfwTest::Rendering()
 {
-	//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
-	//glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_SHORT, 0);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	//glPointSize(4);
-	
+	if (mPM == FILL)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+	else
+		if (mPM == LINE)
+		{
+		    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+			if (mPM == POINT)
+			{
+		        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+				glPointSize(5.0f);
+			}
+
+	glPointSize(4);	
 	if (bOne)
 	    one.render();
 	if (bTwo)
 		two.render();
 	if(bThree)
-		three.render();
+		three.renderQuad();
 	if(bFour)
-		four.render();
+		four.renderPolygon();
 	if (bFive)
 		five.render();
 	
@@ -277,9 +298,20 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 		capture(window);
 		cout << "capture over." << endl;
 	}
-	if ((key == GLFW_KEY_W) && (action == GLFW_PRESS))
+	if ((key == GLFW_KEY_2) && (action == GLFW_PRESS))
 	{
-
+		if (mPM == FILL)
+			mPM = LINE;
+		else
+			if (mPM == LINE)
+			{
+			    mPM = POINT;
+			}
+			else
+				if (mPM == POINT)
+				{
+			        mPM = FILL;
+				}
 	}
 	if ((key == GLFW_KEY_1) && (action == GLFW_PRESS))
 	{
@@ -324,8 +356,8 @@ void glfwTest::buildGeometryBuffers()
 	glBindVertexArray(vao);
 	one.readFile("objects/r01.obj");
 	two.readFile("objects/r02.obj");
-	three.readFile("objects/r03.obj");
-	four.readFile("objects/r04.obj");
+	three.readFileIndice4("objects/r03.obj");
+	four.readFileIndice5("objects/r04.obj");
 	five.readFile("objects/r05.obj");
 	
 	/*
@@ -374,43 +406,6 @@ void glfwTest::buildGeometryBuffers()
 		vertex_indices,
 		GL_STATIC_DRAW);
 		*/
-	/*
-	static const GLushort vertex_indices[] =
-	{
-        0, 0, 3,
-        0, 4, 3,
-        0, 3, 5,
-        0, 5, 1,
-        1, 2, 4,
-        1, 5, 2,
-        2, 3, 4,
-        2, 5, 3,
-	};
-
-	static const GLfloat vertex_positions[] =
-	{
-	    -0.70710678, -0.70710678,  0.00000000,
-	    -0.70710678,  0.70710678,  0.00000000,
-	    0.70710678,  0.70710678,  0.00000000,
-	    0.70710678, -0.70710678,  0.00000000,
-	    0.00000000,  0.00000000, -1.00000000,
-	    0.00000000,  0.00000000,  1.00000000,
-	};
-	glGenBuffers(1, &mVBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, mVBuffer);
-	glBufferData(GL_ARRAY_BUFFER,sizeof(vertex_positions),vertex_positions,GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &mIBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		sizeof(vertex_indices),
-		vertex_indices,
-		GL_STATIC_DRAW);
-	*/
-	// glFrontFace(GL_CW);
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 }
