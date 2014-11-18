@@ -28,6 +28,9 @@ void object::readFile(const char *filename)
 				if (head == "f")
 				{
 				    fileStream >> iData.x >> iData.y >> iData.z;
+					iData.x -= 1;
+					iData.y -= 1;
+					iData.z -= 1;
 					indices.push_back(iData);
 					cout << iData.x << " " << iData.y << " " << iData.z << endl;
 				}

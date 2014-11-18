@@ -10,20 +10,20 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
-		release test|Win32 = release test|Win32
+		new release|Win32 = new release|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A638B045-0117-438F-9FB3-7F46E506492B}.Debug|Win32.ActiveCfg = Debug|Win32
 		{A638B045-0117-438F-9FB3-7F46E506492B}.Debug|Win32.Build.0 = Debug|Win32
-		{A638B045-0117-438F-9FB3-7F46E506492B}.release test|Win32.ActiveCfg = release test|Win32
-		{A638B045-0117-438F-9FB3-7F46E506492B}.release test|Win32.Build.0 = release test|Win32
+		{A638B045-0117-438F-9FB3-7F46E506492B}.new release|Win32.ActiveCfg = new release|Win32
+		{A638B045-0117-438F-9FB3-7F46E506492B}.new release|Win32.Build.0 = new release|Win32
 		{A638B045-0117-438F-9FB3-7F46E506492B}.Release|Win32.ActiveCfg = Release|Win32
 		{A638B045-0117-438F-9FB3-7F46E506492B}.Release|Win32.Build.0 = Release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Debug|Win32.ActiveCfg = Debug|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Debug|Win32.Build.0 = Debug|Win32
-		{513C8F36-1444-48E5-BB0E-0641B6119933}.release test|Win32.ActiveCfg = release test|Win32
-		{513C8F36-1444-48E5-BB0E-0641B6119933}.release test|Win32.Build.0 = release test|Win32
+		{513C8F36-1444-48E5-BB0E-0641B6119933}.new release|Win32.ActiveCfg = new release|Win32
+		{513C8F36-1444-48E5-BB0E-0641B6119933}.new release|Win32.Build.0 = new release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Release|Win32.ActiveCfg = Release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection

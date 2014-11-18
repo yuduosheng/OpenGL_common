@@ -7,7 +7,7 @@ TrackballCamera::TrackballCamera(float w, float h)
 	float mRadius = 1.0f;
 	quat mQuat = quat();
 
-	vec3 pos = vec3(0.0f, 0.0f, 2.0f);
+	vec3 pos = vec3(0.0f, 0.0f, 4.0f);
 	vec3 target = vec3(0.0f);
 
 	setMmworldQuat();
