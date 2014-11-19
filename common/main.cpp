@@ -25,7 +25,7 @@ namespace shader
 		result = glCreateShader(shader_type);
 
 		// Compile Vertex Shader
-		cout << "Compiling shader : " << filename << endl;
+		//cout << "Compiling shader : " << filename << endl;
 		char const * codePointer = shaderCode.c_str();
 
 		glShaderSource(result, 1, &codePointer, NULL);
@@ -98,6 +98,15 @@ void capture(GLFWwindow *window)
 	free(raw2D);
 
 	printf("write out screen capture to '%s'\n", filepath);
+}
+void printHint()
+{
+	cout << "Operation:" << endl;
+	cout << "1.Click left mouse button and drag for trackball effect." << endl;
+	cout << "2.Click right mouse button and drag for translate the object." << endl;
+	cout << "3.Press \"1\" to change object." << endl;
+	cout << "4.Press \"2\" to polygon mode." << endl;
+	cout << "5.Press \"p\" to get a screenshot." << endl;
 }
 
 class glfwTest : public App
@@ -176,6 +185,7 @@ bool glfwTest::Init()
 		return false;
 	buildShader();
 	buildGeometryBuffers();
+	printHint();
 	return true;
 }
 
@@ -226,6 +236,7 @@ void glfwTest::Rendering()
 			}
 
 	glPointSize(4);	
+
 	if (bOne)
 	    one.render();
 	if (bTwo)
@@ -315,7 +326,7 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 	}
 	if ((key == GLFW_KEY_1) && (action == GLFW_PRESS))
 	{
-		cout << "press 1." << endl;
+		//cout << "press 1." << endl;
 		if (bOne)
 		{
 			bOne = false;
@@ -354,11 +365,11 @@ void glfwTest::buildGeometryBuffers()
 {	
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
-	one.readFile("objects/r01.obj");
-	two.readFile("objects/r02.obj");
-	three.readFileIndice4("objects/r03.obj");
-	four.readFileIndice5("objects/r04.obj");
-	five.readFile("objects/r05.obj");
+	one.readFile("r01.obj");
+	two.readFile("r02.obj");
+	three.readFileIndice4("r03.obj");
+	four.readFileIndice5("r04.obj");
+	five.readFile("r05.obj");
 	
 	/*
 	// Create vertex buffer

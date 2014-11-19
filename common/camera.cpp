@@ -32,10 +32,10 @@ void TrackballCamera::SetProj(float fFov, float fAspect, float fNearPlane, float
 }
 
 void TrackballCamera::computeQuat()
-{
+{//calculate rotate quaternion
 	float d, as;
 	vec3 preVec, curVec, vMove, axis;
-
+	//transform from window coordinate to projection plane
 	preVec.x = (2.0f * preMousePosition.x / windowWidth - 1.0f) / mProj[0][0];
 	preVec.y = (-2.0f * preMousePosition.y / windowHeight + 1.0f) / mProj[1][1];
 	preVec.z = 1.0f;
@@ -68,15 +68,11 @@ void TrackballCamera::computeTran()
 	curVec.z = 0.0f;
 
 	vMove = curVec - preVec;
-	//vMove *= 100.0f;
-	//vec3 test(0.1f,0.1f,0.0f);
-	//cout << vMove.x <<" "<< vMove.y << " " <<vMove.z << endl;
-	//mTran = mat4();
+
 	mTran[3][0] = 0.0f;
 	mTran[3][1] = 0.0f;
 	mTran[3][2] = 0.0f;
 	mTran = translate(mTran, vMove);
 
-	cout << mTran[3][0] << mTran[3][1] << mTran[3][2] << endl;
 	preMousePosition = curMousePosition;
 }

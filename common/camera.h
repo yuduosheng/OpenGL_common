@@ -38,8 +38,8 @@ public:
 protected:
 	vec3 mCenter;
 	float mRadius;
-	quat mQuat;
-	mat4 mTran;
+	quat mQuat;//rotate quaternion
+	mat4 mTran;//translate matrix
 
 	mat4 mView;
 	mat4 mProj;

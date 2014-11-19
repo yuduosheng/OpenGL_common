@@ -10,7 +10,7 @@ object::~object()
 	indices.clear();
 }
 void object::readFile(const char *filename)
-{
+{//read obj file which the number of vertex of a primitive is 3
 	ifstream fileStream(filename, ios::in);
 	glm::vec3 vData;
 	glm::uint iData;
@@ -23,7 +23,7 @@ void object::readFile(const char *filename)
 			{
 				fileStream >> vData.x >> vData.y >> vData.z;
 				vertex.push_back(vData);
-				cout << vData.x <<" "<< vData.y << " " << vData.z <<endl;
+				//cout << vData.x <<" "<< vData.y << " " << vData.z <<endl;
 			}
 			else
 				if (head == "f")
@@ -45,7 +45,7 @@ void object::readFile(const char *filename)
 	}
 }
 void object::readFileIndice4(const char *filename)
-{
+{//read obj file which the number of vertex of a primitive is 4
 	ifstream fileStream(filename, ios::in);
 	glm::vec3 vData;
 	glm::uint iData;
@@ -58,7 +58,7 @@ void object::readFileIndice4(const char *filename)
 			{
 				fileStream >> vData.x >> vData.y >> vData.z;
 				vertex.push_back(vData);
-				cout << vData.x << " " << vData.y << " " << vData.z << endl;
+				//cout << vData.x << " " << vData.y << " " << vData.z << endl;
 			}
 			else
 				if (head == "f")
@@ -83,7 +83,7 @@ void object::readFileIndice4(const char *filename)
 	}
 }
 void object::readFileIndice5(const char *filename)
-{
+{//read obj file which the number of vertex of a primitive is 5
 	ifstream fileStream(filename, ios::in);
 	glm::vec3 vData;
 	glm::uint iData;
@@ -96,7 +96,7 @@ void object::readFileIndice5(const char *filename)
 			{
 				fileStream >> vData.x >> vData.y >> vData.z;
 				vertex.push_back(vData);
-				cout << vData.x << " " << vData.y << " " << vData.z << endl;
+				//cout << vData.x << " " << vData.y << " " << vData.z << endl;
 			}
 			else
 				if (head == "f")
