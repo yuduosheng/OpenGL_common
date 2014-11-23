@@ -137,7 +137,7 @@ void object::render()
 	glGenBuffers(1, &mIBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		indices.size() * sizeof(uint),
+		indices.size() * sizeof(glm::uint),
 		&indices[0],
 		GL_STATIC_DRAW);
 
@@ -157,7 +157,7 @@ void object::renderQuad()
 	glGenBuffers(1, &mIBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		indices.size() * sizeof(uint),
+		indices.size() * sizeof(glm::uint),
 		&indices[0],
 		GL_STATIC_DRAW);
 
@@ -177,7 +177,7 @@ void object::renderPolygon()
 	glGenBuffers(1, &mIBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		indices.size() * sizeof(uint),
+		indices.size() * sizeof(glm::uint),
 		&indices[0],
 		GL_STATIC_DRAW);
 

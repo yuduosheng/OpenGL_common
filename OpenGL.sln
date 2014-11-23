@@ -7,6 +7,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glfwTest", "glfwTest\glfwTest.vcxproj", "{513C8F36-1444-48E5-BB0E-0641B6119933}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenMeshTest", "OpenMeshTest\OpenMeshTest.vcxproj", "{6729096F-B5FC-4AF4-BB37-A440B3804E74}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenMeshReadModel", "OpenMeshReadModel\OpenMeshReadModel.vcxproj", "{9DF5036E-98DD-4897-9254-246481E1508C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -26,6 +30,18 @@ Global
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.new release|Win32.Build.0 = new release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Release|Win32.ActiveCfg = Release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Release|Win32.Build.0 = Release|Win32
+		{6729096F-B5FC-4AF4-BB37-A440B3804E74}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6729096F-B5FC-4AF4-BB37-A440B3804E74}.Debug|Win32.Build.0 = Debug|Win32
+		{6729096F-B5FC-4AF4-BB37-A440B3804E74}.new release|Win32.ActiveCfg = Release|Win32
+		{6729096F-B5FC-4AF4-BB37-A440B3804E74}.new release|Win32.Build.0 = Release|Win32
+		{6729096F-B5FC-4AF4-BB37-A440B3804E74}.Release|Win32.ActiveCfg = Release|Win32
+		{6729096F-B5FC-4AF4-BB37-A440B3804E74}.Release|Win32.Build.0 = Release|Win32
+		{9DF5036E-98DD-4897-9254-246481E1508C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9DF5036E-98DD-4897-9254-246481E1508C}.Debug|Win32.Build.0 = Debug|Win32
+		{9DF5036E-98DD-4897-9254-246481E1508C}.new release|Win32.ActiveCfg = Release|Win32
+		{9DF5036E-98DD-4897-9254-246481E1508C}.new release|Win32.Build.0 = Release|Win32
+		{9DF5036E-98DD-4897-9254-246481E1508C}.Release|Win32.ActiveCfg = Release|Win32
+		{9DF5036E-98DD-4897-9254-246481E1508C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
