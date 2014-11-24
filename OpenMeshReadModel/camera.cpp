@@ -10,8 +10,10 @@ TrackballCamera::TrackballCamera(float w, float h)
 	glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
 	glm::vec3 target = glm::vec3(0.0f);
 
-	setMmworldQuat();
-	//mmWorld = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+	//setMmworldQuat();
+	mmWorld = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+	glm::mat4 t = glm::translate(mTran, glm::vec3(0.0f, -0.1f, 0.0f));
+	mmWorld *= t;
 	SetView(pos, target);
 	SetProj(45.0f, (float)windowWidth / windowHeight, 0.1f, 100.f);
 
