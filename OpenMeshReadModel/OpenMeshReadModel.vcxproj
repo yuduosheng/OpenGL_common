@@ -82,10 +82,12 @@
     <ClCompile Include="..\..\common\App.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OMmodel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\common\App.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="OMmodel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="common.fs.glsl" />
