@@ -146,6 +146,7 @@ private:
 
 	OMmodel                 bunnyMesh;
 	OMmodel                 dragonMesh;
+	OMmodel                 horseMesh;
 	OMmodel                 *curModel;
 	GLint                   mPM;
 };
@@ -231,10 +232,6 @@ void glfwTest::Rendering()
 {
 	if (mPM == FILL)
 	{
-		//glEnable(GL_SMOOTH);
-		//glShadeModel(GL_SMOOTH);
-		glEnable(GL_FLAT);
-		glShadeModel(GL_FLAT);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 	else
@@ -343,7 +340,10 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 		if (curModel == &bunnyMesh)
 			curModel = &dragonMesh;
 		else
-			curModel = &bunnyMesh;
+			if (curModel == &dragonMesh)
+				curModel = &horseMesh;
+			else
+				curModel = &bunnyMesh;
 	}
 
 }
@@ -352,7 +352,8 @@ void glfwTest::buildGeometryBuffers()
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	bunnyMesh.OpenMeshReadFile("bun_zipper_res4.ply");
-	dragonMesh.OpenMeshReadFile("dragon_vrip_res4.ply");
+	dragonMesh.OpenMeshReadFile("bun_zipper.ply");
+	horseMesh.OpenMeshReadFile("dragon_vrip_res4.ply");
 }
 void glfwTest::buildShader()
 {
