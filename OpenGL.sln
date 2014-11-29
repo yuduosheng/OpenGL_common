@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glfwTest", "glfwTest\glfwTest.vcxproj", "{513C8F36-1444-48E5-BB0E-0641B6119933}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenmeshTest", "OpenmeshTest\OpenmeshTest.vcxproj", "{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -26,6 +28,12 @@ Global
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.new release|Win32.Build.0 = new release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Release|Win32.ActiveCfg = Release|Win32
 		{513C8F36-1444-48E5-BB0E-0641B6119933}.Release|Win32.Build.0 = Release|Win32
+		{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}.Debug|Win32.Build.0 = Debug|Win32
+		{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}.new release|Win32.ActiveCfg = Release|Win32
+		{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}.new release|Win32.Build.0 = Release|Win32
+		{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}.Release|Win32.ActiveCfg = Release|Win32
+		{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
