@@ -19,11 +19,12 @@ private:
 	vector<OpenMesh::Vec3f> meshVertexBuffer;//vertex buffer
 	vector<OpenMesh::Vec3f> meshVertexNormalBuffer;//vertex normal buffer
 	vector<OpenMesh::Vec3f> meshFaceNormalBuffer;//face buffer normal
-
+	vector<OpenMesh::Vec3f> meshVertexColorBuffer;//vertex color
 
 	GLuint                  meshVBuffer;
 	GLuint                  meshNBuffer;
 	GLuint                  meshFNormal;
+	GLuint                  meshVColor;
 public:
 	OMmodel();
 	~OMmodel();
@@ -43,4 +44,5 @@ public:
 	};
 	bool OpenMeshReadFile(const char * filename);
 	void RenderModel();
+	void RenderModelWithColor();
 };

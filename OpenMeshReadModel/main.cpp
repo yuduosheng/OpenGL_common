@@ -22,7 +22,10 @@ namespace shader
 
 			codeStream.close();
 		}
-
+		else
+		{
+			cout << filename <<" can not open! "<< endl;
+		}
 		result = glCreateShader(shader_type);
 
 		// Compile Vertex Shader
@@ -76,6 +79,7 @@ void capture(GLFWwindow *window)
 	for (i = 0; i < height; i++)
 		raw2D[i] = &raw1D[i*png_get_rowbytes(pp, ip)];
 	// 画像のキャプチャ
+	glFlush();
 	glReadBuffer(GL_FRONT);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // 初期値は4
 	glReadPixels(0, 0, width, height,
@@ -145,8 +149,8 @@ private:
 	TrackballCamera         mCamera;
 
 	OMmodel                 bunnyMesh;
-	OMmodel                 dragonMesh;
-	OMmodel                 horseMesh;
+	//OMmodel                 dragonMesh;
+	//OMmodel                 horseMesh;
 	OMmodel                 *curModel;
 	GLint                   mPM;
 };
@@ -220,13 +224,13 @@ void glfwTest::UpdateScene()
 	glm::mat4 Model = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));*/
 	//glm::mat4 MVP = Projection * View * Model;
 	glm::mat4 MVP = mCamera.getMVP();
-	glm::mat4 M = mCamera.getM();
-	glm::mat4 V = mCamera.getV();
+	//glm::mat4 M = mCamera.getM();
+	//glm::mat4 V = mCamera.getV();
 	glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, glm::value_ptr(MVP));
-	glUniformMatrix4fv(v_matrix, 1, GL_FALSE, glm::value_ptr(V));
-	glUniformMatrix4fv(m_matrix, 1, GL_FALSE, glm::value_ptr(M));
-	glm::vec3 lightPos = glm::vec3(4, 4, 4);
-	glUniform3f(l_position, lightPos.x, lightPos.y, lightPos.z);
+	//glUniformMatrix4fv(v_matrix, 1, GL_FALSE, glm::value_ptr(V));
+	//glUniformMatrix4fv(m_matrix, 1, GL_FALSE, glm::value_ptr(M));
+	//glm::vec3 lightPos = glm::vec3(4, 4, 4);
+	//glUniform3f(l_position, lightPos.x, lightPos.y, lightPos.z);
 }
 void glfwTest::Rendering()
 {
@@ -245,7 +249,8 @@ void glfwTest::Rendering()
 		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 		glPointSize(5.0f);
 			}
-	curModel->RenderModel();
+	//curModel->RenderModel();
+	curModel->RenderModelWithColor();
 }
 void glfwTest::onMouseWheel(GLFWwindow* window, double x, double y)
 {
@@ -337,13 +342,14 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 	}
 	if ((key == GLFW_KEY_1) && (action == GLFW_PRESS))
 	{
+		/*
 		if (curModel == &bunnyMesh)
 			curModel = &dragonMesh;
 		else
 			if (curModel == &dragonMesh)
 				curModel = &horseMesh;
 			else
-				curModel = &bunnyMesh;
+				curModel = &bunnyMesh;*/
 	}
 
 }
@@ -351,17 +357,19 @@ void glfwTest::buildGeometryBuffers()
 {
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
-	bunnyMesh.OpenMeshReadFile("bun_zipper_res4.ply");
-	dragonMesh.OpenMeshReadFile("bun_zipper.ply");
-	horseMesh.OpenMeshReadFile("dragon_vrip_res4.ply");
+	bunnyMesh.OpenMeshReadFile("bunny.off");
+	//dragonMesh.OpenMeshReadFile("bun_zipper_res4.ply");
+	//horseMesh.OpenMeshReadFile("dragon_vrip_res4.ply");
 }
 void glfwTest::buildShader()
 {
 	GLuint vs;
 	GLuint fs;
 
-	vs = shader::loadShader("common.vs.glsl", GL_VERTEX_SHADER, true);
-	fs = shader::loadShader("common.fs.glsl", GL_FRAGMENT_SHADER, true);
+	vs = shader::loadShader("ColorVertexShader.glsl", GL_VERTEX_SHADER, true);
+	fs = shader::loadShader("ColorFragmentShader.glsl", GL_FRAGMENT_SHADER, true);
+	//vs = shader::loadShader("common.vs.glsl", GL_VERTEX_SHADER, true);
+	//fs = shader::loadShader("common.fs.glsl", GL_FRAGMENT_SHADER, true);
 
 	if (program)
 		glDeleteProgram(program);
@@ -376,7 +384,7 @@ void glfwTest::buildShader()
 	glDeleteShader(fs);
 
 	mvp_matrix = glGetUniformLocation(program, "MVP");
-	v_matrix = glGetUniformLocation(program, "V");
-	m_matrix = glGetUniformLocation(program, "M");
-	l_position = glGetUniformLocation(program, "LightPosition_worldspace");
+	//v_matrix = glGetUniformLocation(program, "V");
+	//m_matrix = glGetUniformLocation(program, "M");
+	//l_position = glGetUniformLocation(program, "LightPosition_worldspace");
 }

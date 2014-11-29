@@ -8,6 +8,7 @@ OMmodel::~OMmodel()
 	glDeleteBuffers(1, &meshVBuffer);
 	glDeleteBuffers(1, &meshNBuffer);
 	glDeleteBuffers(1, &meshFNormal);
+	glDeleteBuffers(1, &meshVColor);
 }
 bool OMmodel::OpenMeshReadFile(const char * filename)
 {
@@ -16,6 +17,8 @@ bool OMmodel::OpenMeshReadFile(const char * filename)
 	mesh.request_vertex_normals();
 	// request face normals,
 	mesh.request_face_normals();
+	//request vertex color
+	mesh.request_vertex_colors();
 	// assure we have vertex normals
 	if (!mesh.has_vertex_normals())
 	{
@@ -40,10 +43,29 @@ bool OMmodel::OpenMeshReadFile(const char * filename)
 
 	// Get the face-vertex circulator of face _fh
 	// get the vertex nomal
+	int valence = 0;
 	for (MyMesh::FaceIter f_it = mesh.faces_begin(); f_it != mesh.faces_end(); ++f_it)
 	{
 		for (MyMesh::FaceVertexIter fv_it = mesh.fv_iter(*f_it); fv_it.is_valid(); ++fv_it)
 		{
+			for (MyMesh::VertexVertexIter vv_it = mesh.vv_iter(*fv_it); vv_it.is_valid(); ++vv_it)
+			{
+				++valence;
+			}
+			if (valence <= 4)
+			{
+				meshVertexColorBuffer.push_back(OpenMesh::Vec3f(0.0f, 0.0f, 1.0f));
+			}
+			if (valence >= 5 && valence <= 7)
+			{
+				meshVertexColorBuffer.push_back(OpenMesh::Vec3f(0.0f, 1.0f, 0.0f));
+			}
+			if (valence >= 8)
+			{
+				meshVertexColorBuffer.push_back(OpenMesh::Vec3f(1.0f, 0.0f, 0.0f));
+			}
+			//cout<< valence <<endl;
+			valence = 0;
 			meshVertexBuffer.push_back(mesh.point(*fv_it));
 			meshVertexNormalBuffer.push_back(mesh.normal(*fv_it));
 			meshFaceNormalBuffer.push_back(mesh.normal(*f_it));
@@ -53,6 +75,9 @@ bool OMmodel::OpenMeshReadFile(const char * filename)
 	mesh.release_vertex_normals();
 	// dispose the face normals, as we don't need them anymore
 	mesh.release_face_normals();
+	//release color
+	mesh.release_vertex_colors();
+
 
 	mesh.request_vertex_status();
 	meshVetexNum = mesh.n_vertices();
@@ -123,6 +148,37 @@ void OMmodel::RenderModel()
 			NULL                         // array buffer offset
 			);
 	}
+
+	glDrawArrays(GL_TRIANGLES, 0, meshVertexBuffer.size());
+}
+void OMmodel::RenderModelWithColor()
+{
+	glGenBuffers(1, &meshVBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, meshVBuffer);
+	glBufferData(GL_ARRAY_BUFFER,
+		meshVertexBuffer.size() * sizeof(OpenMesh::Vec3f),
+		&(meshVertexBuffer[0]),
+		GL_STATIC_DRAW);
+	// 1rst attribute buffer : vertices
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, meshVBuffer);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+
+	glGenBuffers(1, &meshVColor);
+	glBindBuffer(GL_ARRAY_BUFFER, meshVColor);
+	glBufferData(GL_ARRAY_BUFFER, meshVertexColorBuffer.size() * sizeof(OpenMesh::Vec3f), &(meshVertexColorBuffer[0]), GL_STATIC_DRAW);
+	// 2rd attribute buffer : vertices
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, meshVColor);
+	glVertexAttribPointer(
+		1,                                // attribute
+		3,                                // size
+		GL_FLOAT,                         // type
+		GL_FALSE,                         // normalized?
+		0,                                // stride
+		NULL                         // array buffer offset
+		);
 
 	glDrawArrays(GL_TRIANGLES, 0, meshVertexBuffer.size());
 }

@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{86A26A3A-35EE-4AB4-97AC-4BC018891F3E}</ProjectGuid>
+    <ProjectGuid>{6729096F-B5FC-4AF4-BB37-A440B3804E74}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>OpenmeshTest</RootNamespace>
   </PropertyGroup>
