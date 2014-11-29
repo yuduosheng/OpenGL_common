@@ -1,6 +1,7 @@
-ï»¿#include "camera.h"
-#include "object.h"
 #include <png.h>
+#include "App.h"
+#include "camera.h"
+#include "OMmodel.h"
 
 namespace shader
 {
@@ -15,10 +16,10 @@ namespace shader
 			string Line = "";
 			while (getline(codeStream, Line))
 			{
-				shaderCode +=  Line;
+				shaderCode += Line;
 				shaderCode += "\n";
 			}
-				
+
 			codeStream.close();
 		}
 
@@ -38,7 +39,7 @@ namespace shader
 
 			if (!status)
 			{
-				char buffer[4096];    
+				char buffer[4096];
 				glGetShaderInfoLog(result, 4096, NULL, buffer);
 
 				cout << filename << buffer << endl;
@@ -59,39 +60,39 @@ void capture(GLFWwindow *window)
 	int width;
 	int height;
 	glfwGetWindowSize(window, &width, &height);
-	// æ§‹é€ ä½“ç¢ºä¿
+	// \‘¢‘ÌŠm•Û
 	FILE *fp = fopen(filepath, "wb");
 	png_structp pp = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	png_infop ip = png_create_info_struct(pp);
-	// æ›¸ãè¾¼ã¿æº–å‚™
+	// ‘‚«ž‚Ý€”õ
 	png_init_io(pp, fp);
 	png_set_IHDR(pp, ip, width, height,
-		8, // 8bitä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
-		PNG_COLOR_TYPE_RGBA, // RGBAä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
+		8, // 8bitˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
+		PNG_COLOR_TYPE_RGBA, // RGBAˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
 		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-	// ãƒ”ã‚¯ã‚»ãƒ«é ˜åŸŸç¢ºä¿
+	// ƒsƒNƒZƒ‹—ÌˆæŠm•Û
 	raw1D = (png_bytep)malloc(height * png_get_rowbytes(pp, ip));
 	raw2D = (png_bytepp)malloc(height * sizeof(png_bytep));
 	for (i = 0; i < height; i++)
 		raw2D[i] = &raw1D[i*png_get_rowbytes(pp, ip)];
-	// ç”»åƒã®ã‚­ãƒ£ãƒ—ãƒãƒ£
+	// ‰æ‘œ‚ÌƒLƒƒƒvƒ`ƒƒ
 	glReadBuffer(GL_FRONT);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // åˆæœŸå€¤ã¯4
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // ‰Šú’l‚Í4
 	glReadPixels(0, 0, width, height,
-		GL_RGBA, // RGBAä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
-		GL_UNSIGNED_BYTE, // 8bitä»¥å¤–ã«ã™ã‚‹ãªã‚‰å¤‰ãˆã‚‹
+		GL_RGBA, // RGBAˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
+		GL_UNSIGNED_BYTE, // 8bitˆÈŠO‚É‚·‚é‚È‚ç•Ï‚¦‚é
 		(void*)raw1D);
-	// ä¸Šä¸‹åè»¢
+	// ã‰º”½“]
 	for (i = 0; i < height / 2; i++){
 		png_bytep swp = raw2D[i];
 		raw2D[i] = raw2D[height - i - 1];
 		raw2D[height - i - 1] = swp;
 	}
-	// æ›¸ãè¾¼ã¿
+	// ‘‚«ž‚Ý
 	png_write_info(pp, ip);
 	png_write_image(pp, raw2D);
 	png_write_end(pp, ip);
-	// é–‹æ”¾
+	// ŠJ•ú
 	png_destroy_write_struct(&pp, &ip);
 	fclose(fp);
 	free(raw1D);
@@ -108,6 +109,10 @@ void printHint()
 	cout << "4.Press \"2\" to change polygon mode." << endl;
 	cout << "5.Press \"p\" to get a screenshot." << endl;
 }
+
+#define	FILL 0x01
+#define	LINE 0x02
+#define	POINT 0x04
 
 class glfwTest : public App
 {
@@ -129,32 +134,21 @@ private:
 	void buildGeometryBuffers();
 	void buildShader();
 private:
-	GLuint                  mVBuffer;
-	GLuint                  mIBuffer;
+
 	GLuint                  vao;
 	GLuint                  program;
-	GLint                   mvp_matrix;
+	GLuint                  mvp_matrix;
+	GLuint                  m_matrix;
+	GLuint                  v_matrix;
+	GLuint                  l_position;
 
-	bool                    bOne;
-	bool                    bTwo;
-	bool                    bThree;
-	bool                    bFour;
-	bool                    bFive;
-
-	object                  one;
-	object                  two;
-	object                  three;
-	object                  four;
-	object                  five;
 	TrackballCamera         mCamera;
 
-	enum PolygonMode
-	{
-		FILL,
-		LINE,
-		POINT
-	};
-	PolygonMode             mPM;
+	OMmodel                 bunnyMesh;
+	OMmodel                 dragonMesh;
+	OMmodel                 horseMesh;
+	OMmodel                 *curModel;
+	GLint                   mPM;
 };
 
 int main(void)
@@ -168,25 +162,36 @@ int main(void)
 	return 0;
 }
 
-glfwTest::glfwTest() : App(), mVBuffer(0),
-mIBuffer(0), vao(0), program(0), mCamera(mWidth, mHeight),
-bOne(true), bTwo(false), bThree(false), bFour(false), bFive(false)
+glfwTest::glfwTest() : App(), vao(0), program(0), mCamera(800, 600),
+mvp_matrix(0),
+m_matrix(0),
+v_matrix(0),
+l_position(0)
 {
 	mPM = FILL;
+	curModel = &bunnyMesh;
 }
 
 glfwTest::~glfwTest()
 {
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	// Cleanup VBO and shader
+	glDeleteProgram(program);
+	glDeleteVertexArrays(1, &vao);
 }
 
 bool glfwTest::Init()
 {
 	if (!App::Init())
 		return false;
-	buildShader();
-	buildGeometryBuffers();
 	printHint();
 
+	buildGeometryBuffers();
+
+    buildShader();
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	return true;
 }
 
@@ -199,27 +204,32 @@ void glfwTest::UpdateScene()
 {
 	static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	static const GLfloat one = 1.0f;
-
+	
 	glViewport(0, 0, mWidth, mHeight);
 	glClearBufferfv(GL_COLOR, 0, black);
 	glClearBufferfv(GL_DEPTH, 0, &one);
 
 	glUseProgram(program);
 	/*
-	vec3 pos = vec3(0.0f, 0.0f, 5.0f);
-	vec3 target = vec3(0.0f);
-	vec3 up = vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec3 target = glm::vec3(0.0f);
+	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-	mat4 Projection = perspective(45.0f, (float)mWidth/mHeight, 0.1f, 100.f);
-	mat4 View = lookAt(pos, target, up);
-	mat4 Model = scale(mat4(1.0f), vec3(0.5f)); 
-	mat4 MVP = Projection * View * Model;*/ 
-    mat4 MVP = mCamera.getMVP();
+	glm::mat4 Projection = glm::perspective(45.0f, (float)mWidth / mHeight, 0.1f, 100.f);
+	glm::mat4 View = glm::lookAt(pos, target, up);
+	glm::mat4 Model = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));*/
+	//glm::mat4 MVP = Projection * View * Model;
+	glm::mat4 MVP = mCamera.getMVP();
+	glm::mat4 M = mCamera.getM();
+	glm::mat4 V = mCamera.getV();
 	glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, glm::value_ptr(MVP));
+	glUniformMatrix4fv(v_matrix, 1, GL_FALSE, glm::value_ptr(V));
+	glUniformMatrix4fv(m_matrix, 1, GL_FALSE, glm::value_ptr(M));
+	glm::vec3 lightPos = glm::vec3(4, 4, 4);
+	glUniform3f(l_position, lightPos.x, lightPos.y, lightPos.z);
 }
 void glfwTest::Rendering()
 {
-	
 	if (mPM == FILL)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -227,34 +237,29 @@ void glfwTest::Rendering()
 	else
 		if (mPM == LINE)
 		{
-		    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
 		else
 			if (mPM == POINT)
 			{
-		        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-				glPointSize(5.0f);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+		glPointSize(5.0f);
 			}
-
-	if (bOne)
-	    one.render();
-	if (bTwo)
-		two.render();
-	if(bThree)
-		three.renderQuad();
-	if(bFour)
-		four.renderPolygon();
-	if (bFive)
-		five.render();
+	curModel->RenderModel();
 }
 void glfwTest::onMouseWheel(GLFWwindow* window, double x, double y)
 {
-
+	float scale = 1.0f;
+	float mouseWheelScale = 0.1f;
+	scale += mouseWheelScale  * (float)y;
+	mCamera.setScaleFactor(scale);
+	mCamera.setMmworldScle();
 }
 void glfwTest::onMouseMove(GLFWwindow* window, double xd, double yd)
 {
 	double x = xd;
 	double y = yd;
+
 	if (mCamera.IsMouseLButtonDown())
 	{
 		glfwGetCursorPos(window, &xd, &yd);
@@ -273,7 +278,7 @@ void glfwTest::onMouseMove(GLFWwindow* window, double xd, double yd)
 void glfwTest::onMouseButton(GLFWwindow* window, int button, int action, int mods)
 {
 	double xd, yd;
-
+	
 	if ((button == GLFW_MOUSE_BUTTON_1) && (action == GLFW_PRESS))
 	{
 		mCamera.SetMouseLButtonStat(true);
@@ -303,9 +308,17 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 	App::onKey(window, key, scancode, action, mods);
 	//capture
 	if ((key == GLFW_KEY_P) && (action == GLFW_PRESS))
-	{ 
+	{
 		capture(window);
 		cout << "capture over." << endl;
+	}
+	if ((key == GLFW_KEY_S) && (action == GLFW_PRESS))
+	{
+		curModel->PrintMeshStatus();
+	}
+	if ((key == GLFW_KEY_3) && (action == GLFW_PRESS))
+	{
+		curModel->SetSM();
 	}
 	if ((key == GLFW_KEY_2) && (action == GLFW_PRESS))
 	{
@@ -314,113 +327,36 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 		else
 			if (mPM == LINE)
 			{
-			    mPM = POINT;
+			mPM = POINT;
 			}
 			else
 				if (mPM == POINT)
 				{
-			        mPM = FILL;
+			mPM = FILL;
 				}
 	}
 	if ((key == GLFW_KEY_1) && (action == GLFW_PRESS))
 	{
-		//cout << "press 1." << endl;
-		if (bOne)
-		{
-			bOne = false;
-			bTwo = true;
-			
-		}
+		if (curModel == &bunnyMesh)
+			curModel = &dragonMesh;
 		else
-		if (bTwo)
-		{
-			bThree = true;
-			bTwo = false;
-		}
-		else
-		if (bThree)
-		{
-			bFour = true;
-			bThree = false;
-		}
-		else
-		if (bFour)
-		{
-			bFive = true;
-		    bFour = false;
-		}
-		else
-		if (bFive)
-		{
-			bOne = true;
-			bFive = false;
-		}
-
+			if (curModel == &dragonMesh)
+				curModel = &horseMesh;
+			else
+				curModel = &bunnyMesh;
 	}
-		
+
 }
 void glfwTest::buildGeometryBuffers()
-{	
+{
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
-	
-	one.readFile("r01.obj");
-	two.readFile("r02.obj");
-	three.readFileIndice4("r03.obj");
-	four.readFileIndice5("r04.obj");
-	five.readFile("r05.obj");
-	
-	/*
-	// Create vertex buffer
-	static const GLushort vertex_indices[] =
-	{
-		0, 1, 2,
-		2, 1, 3,
-		2, 3, 4,
-		4, 3, 5,
-		4, 5, 6,
-		6, 5, 7,
-		6, 7, 0,
-		0, 7, 1,
-		6, 0, 2,
-		2, 4, 6,
-		7, 5, 3,
-		7, 3, 1
-	};
-
-	static const GLfloat vertex_positions[] =
-	{
-		-0.25f, -0.25f, -0.25f,
-		-0.25f, 0.25f, -0.25f,
-		0.25f, -0.25f, -0.25f,
-		0.25f, 0.25f, -0.25f,
-		0.25f, -0.25f, 0.25f,
-		0.25f, 0.25f, 0.25f,
-		-0.25f, -0.25f, 0.25f,
-		-0.25f, 0.25f, 0.25f,
-	};
-
-	glGenBuffers(1, &mVBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, mVBuffer);
-	glBufferData(GL_ARRAY_BUFFER,
-		sizeof(vertex_positions),
-		vertex_positions,
-		GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &mIBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		sizeof(vertex_indices),
-		vertex_indices,
-		GL_STATIC_DRAW);
-		*/
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
+	bunnyMesh.OpenMeshReadFile("bun_zipper_res4.ply");
+	dragonMesh.OpenMeshReadFile("bun_zipper.ply");
+	horseMesh.OpenMeshReadFile("dragon_vrip_res4.ply");
 }
 void glfwTest::buildShader()
-{   
+{
 	GLuint vs;
 	GLuint fs;
 
@@ -439,5 +375,8 @@ void glfwTest::buildShader()
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 
-	mvp_matrix = glGetUniformLocation(program, "mvp");
+	mvp_matrix = glGetUniformLocation(program, "MVP");
+	v_matrix = glGetUniformLocation(program, "V");
+	m_matrix = glGetUniformLocation(program, "M");
+	l_position = glGetUniformLocation(program, "LightPosition_worldspace");
 }

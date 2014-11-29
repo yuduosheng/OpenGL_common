@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-using namespace glm;
+
 #include <iostream>
 using namespace std;
 
@@ -13,14 +13,19 @@ class TrackballCamera
 public:
 	TrackballCamera(float w, float h);
 
-	void                SetView(vec3 pEye, vec3 pLookat);
+	void                SetView(glm::vec3 pEye, glm::vec3 pLookat);
 	void                SetProj(float fFov, float fAspect, float fNearPlane, float fFarPlane);
 	void computeQuat();
 	void computeTran();
 
-	mat4 getMVP()                                         { return mProj * mView * mmWorld; }
-	void setMmworldQuat()                                 { mmWorld = mat4_cast(mQuat) * mmWorld; };
+	glm::mat4 getMVP()                                    { return mProj * mView * mmWorld; }
+	glm::mat4 getM()                                      { return mmWorld; }
+	glm::mat4 getV()                                      { return mView; }
+	void setMmworldQuat()                                 { mmWorld = glm::mat4_cast(mQuat) * mmWorld; };
 	void setMmworldTran()                                 { mmWorld = mTran * mmWorld; };
+	void setMmworldScle()                                 { mmWorld = mScale * mmWorld; };
+
+	void setScaleFactor(float x)                          { mSFactor = x; mScale = glm::scale(glm::mat4(),glm::vec3(x)); }
 	void initMousePosition(float x, float y)              { SetCurMousePosition(x, y); SetPreMousePosition(x, y); }
 	void SetMouseLButtonStat(bool stat)                   { mbMouseLButtonDown = stat; }
 	void SetMouseLWheelStat(bool stat)                    { mbMouseWheelRoll = stat; }
@@ -36,14 +41,16 @@ public:
 	bool IsMouseRButtonDown() const                       { return mbMouseRButtonDown; }
 
 protected:
-	vec3 mCenter;
+	glm::vec3 mCenter;
 	float mRadius;
-	quat mQuat;//rotate quaternion
-	mat4 mTran;//translate matrix
+	glm::quat mQuat;//rotate quaternion
+	glm::mat4 mTran;//translate matrix
+	glm::mat4 mScale;
+	float     mSFactor;
 
-	mat4 mView;
-	mat4 mProj;
-	mat4 mmWorld;
+	glm::mat4 mView;
+	glm::mat4 mProj;
+	glm::mat4 mmWorld;
 
 	bool mbMouseLButtonDown;    // True if left button is down 
 	bool mbMouseWheelRoll;          // True if middle wheel is roll 
@@ -51,8 +58,8 @@ protected:
 
 	float windowWidth;
 	float windowHeight;
-	vec2 curMousePosition;
-	vec2 preMousePosition;
+	glm::vec2 curMousePosition;
+	glm::vec2 preMousePosition;
 };
 
 #endif 

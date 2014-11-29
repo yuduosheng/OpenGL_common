@@ -3,15 +3,17 @@
 TrackballCamera::TrackballCamera(float w, float h)
 {
 	SetWindow(w, h);
-	vec3 mCenter = vec3(0.0f);
+	mCenter = glm::vec3(0.0f);
 	float mRadius = 1.0f;
-	quat mQuat = quat();
+	mQuat = glm::quat();
 
-	vec3 pos = vec3(0.0f, 0.0f, 4.0f);
-	vec3 target = vec3(0.0f);
+	glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec3 target = glm::vec3(0.0f);
 
-	setMmworldQuat();
-	//mmWorld = scale(mat4(1.0f), vec3(0.5f));
+	//setMmworldQuat();
+	mmWorld = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f));
+	glm::mat4 t = glm::translate(mTran, glm::vec3(0.0f, -0.1f, 0.0f));
+	mmWorld *= t;
 	SetView(pos, target);
 	SetProj(45.0f, (float)windowWidth / windowHeight, 0.1f, 100.f);
 
@@ -20,21 +22,21 @@ TrackballCamera::TrackballCamera(float w, float h)
 	mbMouseRButtonDown = false;
 }
 
-void TrackballCamera::SetView(vec3 eye, vec3 target)
+void TrackballCamera::SetView(glm::vec3 eye, glm::vec3 target)
 {
-	vec3 up(0.0f, 1.0f, 0.0f);
-	mView = lookAt(eye, target, up);
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	mView = glm::lookAt(eye, target, up);
 }
 
 void TrackballCamera::SetProj(float fFov, float fAspect, float fNearPlane, float fFarPlane)
 {
-	mProj = perspective(fFov, fAspect, fNearPlane, fFarPlane);
+	mProj = glm::perspective(fFov, fAspect, fNearPlane, fFarPlane);
 }
 
 void TrackballCamera::computeQuat()
 {//calculate rotate quaternion
 	float d, as;
-	vec3 preVec, curVec, vMove, axis;
+	glm::vec3 preVec, curVec, vMove, axis;
 	//transform from window coordinate to projection plane
 	preVec.x = (2.0f * preMousePosition.x / windowWidth - 1.0f) / mProj[0][0];
 	preVec.y = (-2.0f * preMousePosition.y / windowHeight + 1.0f) / mProj[1][1];
@@ -47,18 +49,18 @@ void TrackballCamera::computeQuat()
 
 	vMove = curVec - preVec;
 
-	axis = cross(curVec, preVec);
-	axis = normalize(axis);
+	axis = glm::cross(curVec, preVec);
+	axis = glm::normalize(axis);
 
-	as = (length(vMove) * length(vMove) - length(curVec) * length(curVec) - length(preVec) * length(preVec)) / (2.0f*length(curVec)*length(preVec));
+	as = (glm::length(vMove) * glm::length(vMove) - glm::length(curVec) * glm::length(curVec) - glm::length(preVec) * glm::length(preVec)) / (2.0f*glm::length(curVec)*glm::length(preVec));
 
-	mQuat = angleAxis(as, axis);
+	mQuat = glm::angleAxis(2.0f * as, axis);
 
 	preMousePosition = curMousePosition;
 }
 void TrackballCamera::computeTran()
 {
-	vec3 preVec, curVec, vMove;
+	glm::vec3 preVec, curVec, vMove;
 	preVec.x = (2.0f * preMousePosition.x / windowWidth - 1.0f) / mProj[0][0];
 	preVec.y = (-2.0f * preMousePosition.y / windowHeight + 1.0f) / mProj[1][1];
 	preVec.z = 0.0f;
@@ -72,7 +74,7 @@ void TrackballCamera::computeTran()
 	mTran[3][0] = 0.0f;
 	mTran[3][1] = 0.0f;
 	mTran[3][2] = 0.0f;
-	mTran = translate(mTran, vMove);
+	mTran = glm::translate(mTran, vMove);
 
 	preMousePosition = curMousePosition;
 }

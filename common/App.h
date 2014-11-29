@@ -1,6 +1,8 @@
 #ifndef APP_H
 #define APP_H
-
+//Simple opengl + glfw demo application class.  
+//You can create your application simply derive from App class
+//You need to overwrite framework methods.
 #if defined(WIN32)
 #include <windows.h>
 #endif
@@ -16,7 +18,7 @@ using namespace std;
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-using namespace glm;
+
 
 class App
 {

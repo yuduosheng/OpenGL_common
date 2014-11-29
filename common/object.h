@@ -20,9 +20,9 @@ public:
 protected:
 	GLuint                  mVBuffer;
 	GLuint                  mIBuffer;
-	vector<vec3>            vertex;
-	vector<uint>            indices;
-	uint                    mIndiceNum;
+	vector<glm::vec3>            vertex;//vertex buffer
+	vector<glm::uint>            indices;//indice buffer
+	glm::uint                    mIndiceNum;//number of primitive
 };
 
 
