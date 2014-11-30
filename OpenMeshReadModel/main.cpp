@@ -109,7 +109,7 @@ void printHint()
 	cout << "Operation:" << endl;
 	cout << "1.Click left mouse button and drag for trackball effect." << endl;
 	cout << "2.Click right mouse button and drag for translate the object." << endl;
-	cout << "3.Press \"1\" to change object." << endl;
+	cout << "3.Press \"1\" to change between valence viewer and curvature viewer." << endl;
 	cout << "4.Press \"2\" to change polygon mode." << endl;
 	cout << "5.Press \"p\" to get a screenshot." << endl;
 }
@@ -342,14 +342,7 @@ void glfwTest::onKey(GLFWwindow* window, int key, int scancode, int action, int 
 	}
 	if ((key == GLFW_KEY_1) && (action == GLFW_PRESS))
 	{
-		/*
-		if (curModel == &bunnyMesh)
-			curModel = &dragonMesh;
-		else
-			if (curModel == &dragonMesh)
-				curModel = &horseMesh;
-			else
-				curModel = &bunnyMesh;*/
+		curModel->SetCM();
 	}
 
 }
