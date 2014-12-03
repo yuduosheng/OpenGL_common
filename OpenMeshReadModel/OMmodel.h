@@ -49,13 +49,24 @@ public:
 	void SetCM()
 	{
 		if (mCM == Valence)
+		{
 			mCM = MeanCurvature;
+			cout << "Mean Curvature view now." << endl;
+		}
+
 		else
 			if (mCM == MeanCurvature)
-				mCM = GaussianCurvature;
+			{
+                mCM = GaussianCurvature;
+				cout << "Gaussian Curvature view now." << endl;
+			}		
 			else
-				mCM = Valence;
+			{
+                mCM = Valence;
+				cout << "Valence view now." << endl;
+			}			
 	};
+	int  getViewMode(){ return mCM; }
 	void OpenMeshReadFile(const char * filename);
 	void RenderModel();
 	void RenderModelWithColor();

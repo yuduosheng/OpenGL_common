@@ -1,7 +1,7 @@
 #include "OMmodel.h"
 
-ofstream debug("debug.txt");
-ofstream debug2("debug2.txt");
+//ofstream debug("debug.txt");
+//ofstream debug2("debug2.txt");
 float cot(float d)
 {
 	return (1 / tan(d));
@@ -46,30 +46,30 @@ OpenMesh::Vec3f RGBtoHSV(OpenMesh::Vec3f colorRGB){
 
 	return hsv;
 }
-OpenMesh::Vec3f HSVtoRGB(OpenMesh::Vec3f hsv){
-	float f;
-	int i;
-	float p, q, t;
+OpenMesh::Vec3f HSVtoRGB(OpenMesh::Vec3f hsv)
+{
+	float c = hsv[1] * hsv[2];
+	float h = hsv[0] / 60;
+	float x = c*(1 - abs((int)h % 2 - 1));
+	float m = hsv[2] - c;
+
 	OpenMesh::Vec3f rgb;
 
-	i = (int)floor(hsv[0] / 60.0f) % 6;
-	f = (float)(hsv[0] / 60.0f) - (float)floor(hsv[0] / 60.0f);
-	p = (int)round(hsv[2] * (1.0f - (hsv[1] / 255.0f)));
-	q = (int)round(hsv[2] * (1.0f - (hsv[1] / 255.0f) * f));
-	t = (int)round(hsv[2] * (1.0f - (hsv[1] / 255.0f) * (1.0f - f)));
+	int i = (int)floor(hsv[0] / 60.0f) % 6;
 
-	switch (i){
-	case 0: rgb[0] = hsv[2];       rgb[1] = t;            rgb[2] = p;         break;
-	case 1: rgb[0] = q;            rgb[1] = hsv[2];       rgb[2] = p;         break;
-	case 2: rgb[0] = p;            rgb[1] = hsv[2];       rgb[2] = t;         break;
-	case 3: rgb[0] = p;            rgb[1] = q;            rgb[2] = hsv[2];    break;
-	case 4: rgb[0] = t;            rgb[1] = p;            rgb[2] = hsv[2];    break;
-	case 5: rgb[0] = hsv[2];       rgb[1] = p;            rgb[2] = q;         break;
+	switch (i)
+	{
+	case 0: rgb[0] = c;       rgb[1] = x;       rgb[2] = 0;         break;
+	case 1: rgb[0] = x;       rgb[1] = c;       rgb[2] = 0;         break;
+	case 2: rgb[0] = 0;       rgb[1] = c;       rgb[2] = x;         break;
+	case 3: rgb[0] = 0;       rgb[1] = x;       rgb[2] = c;         break;
+	case 4: rgb[0] = x;       rgb[1] = 0;       rgb[2] = c;         break;
+	case 5: rgb[0] = c;       rgb[1] = 0;       rgb[2] = x;         break;
 	}
 
-	return rgb;
+	return rgb + OpenMesh::Vec3f(m, m, m);
 }
-OpenMesh::Vec3f interporlationColor(float max, float min, float now)
+OpenMesh::Vec3f interporlationColor(float max, float min, float now, int p)
 {
 	/*
 	debug << now <<"xxxx"<< max << min <<endl;
@@ -86,19 +86,33 @@ OpenMesh::Vec3f interporlationColor(float max, float min, float now)
 		else
 			return red;
 	*/
-	float factor = (now - min) / (max - min);
+	float Max = max/p;
+	float Min = min/p;
+	float cur;
+	if (now > Max)
+		cur = Max;
+	else
+		cur = now;
 
-	return HSVtoRGB(OpenMesh::Vec3f(factor*360, 1.0f, 1.0f));
+	if (cur < Min)
+		cur = Min;
+
+
+	float factor = (cur - Min) / (Max - Min);
+
+	//debug2 << factor << endl;
+	return HSVtoRGB(OpenMesh::Vec3f(factor * 359.0f,  1.0f, 1.0f));
 }
 OMmodel::OMmodel()
 {
 }
 OMmodel::~OMmodel()
 {
+	/*
 	if (debug.good())
 		debug.close();
 	if (debug2.good())
-		debug2.close();
+		debug2.close();*/
 	glDeleteBuffers(1, &meshVBuffer);
 	glDeleteBuffers(1, &meshNBuffer);
 	glDeleteBuffers(1, &meshFNormal);
@@ -228,7 +242,7 @@ void OMmodel::OpenMeshReadFile(const char * filename)
 		A = A / 8.0f;
 		H = 2.0f * (H / A);
 		Hcurvature = 0.5f * H.norm();
-		Gcurvature = fabs((2.0f * M_PI) - arccosTheta)/ A;
+		Gcurvature = ((2.0f * M_PI) - arccosTheta)/ A;
 		maxCur = max(Hcurvature, maxCur);
 		minCur = min(Hcurvature, minCur);
 		maxGCur = max(Gcurvature, maxGCur);
@@ -237,13 +251,13 @@ void OMmodel::OpenMeshReadFile(const char * filename)
 		mesh.property(HCurvature, *v_it) = Hcurvature;
 		mesh.property(GCurvature, *v_it) = Gcurvature;
 
-		debug << val << " " << Hcurvature << " " << Gcurvature << endl;
+		//debug << val << " " << Hcurvature << " " << Gcurvature << endl;
 
 		val = 0;
 	}
-	std::cout << 2.0f * M_PI << endl;
-	std::cout << maxCur << "   " << minCur <<endl;
-	std::cout << maxGCur << "   " << minGCur << endl;
+	//std::cout << 2.0f * M_PI << endl;
+	//std::cout << maxCur << "   " << minCur <<endl;
+	//std::cout << maxGCur << "   " << minGCur << endl;
 
 	for (MyMesh::FaceIter f_it = mesh.faces_begin(); f_it != mesh.faces_end(); ++f_it)
 	{
@@ -264,8 +278,8 @@ void OMmodel::OpenMeshReadFile(const char * filename)
 			}
 
 			//cout << mesh.property(curvature, *fv_it) << endl;
-			meshCurColorBuffer.push_back(interporlationColor(maxCur/20, minCur, mesh.property(HCurvature, *fv_it)));
-			meshGCurColorBuffer.push_back(interporlationColor(maxGCur/20, 0, mesh.property(GCurvature, *fv_it)));
+			meshCurColorBuffer.push_back(interporlationColor(maxCur, minCur, mesh.property(HCurvature, *fv_it), 3));
+			meshGCurColorBuffer.push_back(interporlationColor(maxGCur, minGCur, mesh.property(GCurvature, *fv_it), 10));
 			meshVertexBuffer.push_back(mesh.point(*fv_it));
 			meshVertexNormalBuffer.push_back(mesh.normal(*fv_it));
 			meshFaceNormalBuffer.push_back(mesh.normal(*f_it));
@@ -370,11 +384,19 @@ void OMmodel::RenderModelWithColor()
 	glGenBuffers(1, &meshVColor);
 	glBindBuffer(GL_ARRAY_BUFFER, meshVColor);
 	if (mCM == Valence)
+	{ 
 	    glBufferData(GL_ARRAY_BUFFER, meshVertexColorBuffer.size() * sizeof(OpenMesh::Vec3f), &(meshVertexColorBuffer[0]), GL_STATIC_DRAW);
+	}
 	if (mCM == MeanCurvature)
-	    glBufferData(GL_ARRAY_BUFFER, meshCurColorBuffer.size() * sizeof(OpenMesh::Vec3f), &(meshCurColorBuffer[0]), GL_STATIC_DRAW);
+	{
+        glBufferData(GL_ARRAY_BUFFER, meshCurColorBuffer.size() * sizeof(OpenMesh::Vec3f), &(meshCurColorBuffer[0]), GL_STATIC_DRAW);
+	}
+	    
 	if (mCM == GaussianCurvature)
-		glBufferData(GL_ARRAY_BUFFER, meshGCurColorBuffer.size() * sizeof(OpenMesh::Vec3f), &(meshGCurColorBuffer[0]), GL_STATIC_DRAW);
+	{
+        glBufferData(GL_ARRAY_BUFFER, meshGCurColorBuffer.size() * sizeof(OpenMesh::Vec3f), &(meshGCurColorBuffer[0]), GL_STATIC_DRAW);
+	}
+		
 	// 2rd attribute buffer : vertices
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, meshVColor);

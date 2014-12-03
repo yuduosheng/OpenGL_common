@@ -108,10 +108,12 @@ void printHint()
 {
 	cout << "Operation:" << endl;
 	cout << "1.Click left mouse button and drag for trackball effect." << endl;
-	cout << "2.Click right mouse button and drag for translate the object." << endl;
-	cout << "3.Press \"1\" to change between valence viewer and curvature viewer." << endl;
-	cout << "4.Press \"2\" to change polygon mode." << endl;
-	cout << "5.Press \"p\" to get a screenshot." << endl;
+	cout << "2.Click right mouse button and drag for translate the model." << endl;
+	cout << "3.Use mouse wheel to scale the model." << endl;
+	cout << "4.Press \"1\" to change between valence viewer and curvature viewers." << endl;
+	cout << "5.Press \"2\" to change polygon mode." << endl;
+	cout << "6.Press \"p\" to get a screenshot." << endl;
+	cout << endl << endl << endl;
 }
 
 #define	FILL 0x01
