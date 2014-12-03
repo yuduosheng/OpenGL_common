@@ -34,10 +34,10 @@ public:
 	~OMmodel();
 	void PrintMeshStatus()
 	{
-		cout << "The number of vertices: " << meshVetexNum << endl;
-		cout << "The number of faces: " << meshFaceNum << endl;
-		cout << "The number of halfedges: " << meshHalfEdgeNum << endl;
-		cout << "The number of boundry-edges: " << meshBoundryEdgeNum << endl;
+		std::cout << "The number of vertices: " << meshVetexNum << endl;
+		std::cout << "The number of faces: " << meshFaceNum << endl;
+		std::cout << "The number of halfedges: " << meshHalfEdgeNum << endl;
+		std::cout << "The number of boundry-edges: " << meshBoundryEdgeNum << endl;
 	}
 	void SetSM()
 	{ 
