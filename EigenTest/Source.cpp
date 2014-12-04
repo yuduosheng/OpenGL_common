@@ -86,7 +86,7 @@ int main()
 	b = ReadBFromFile("b675.dat");
 	//g_debug << A << endl;
 	//g_debug << b << endl;
-
+	cout << "The result is in debug.txt" << endl << endl << endl;
 	double curTime;
 	curTime = (double)clock() / CLOCKS_PER_SEC;
 
@@ -104,8 +104,7 @@ int main()
 	g_debug << x << endl;
 
 	double preTime = (double)clock() / CLOCKS_PER_SEC;
-	cout << "Solver1 time used = " << preTime - curTime << endl;
-
+	cout << "SimplicialLLT time used = " << preTime - curTime << endl;
 
 	SimplicialLDLT<SparseMatrix<double> > solver2;
 	solver2.compute(A);
@@ -122,7 +121,7 @@ int main()
 	g_debug << x << endl;
 
 	double preTime2 = (double)clock() / CLOCKS_PER_SEC;
-	cout << "Solver2 time used = " << preTime2 - preTime << endl;
+	cout << "SimplicialLDLT time used = " << preTime2 - preTime << endl;
 
 	ConjugateGradient<SparseMatrix<double> > solver3;
 	solver3.compute(A);
@@ -138,8 +137,8 @@ int main()
 	g_debug << "-------------------------------------------------------" << endl;
 	g_debug << x << endl;
 
-	cout << "Solver2 time used = " << (double)clock() / CLOCKS_PER_SEC - preTime2 << endl;
-
+	cout << "ConjugateGradient time used = " << (double)clock() / CLOCKS_PER_SEC - preTime2 << endl;
+	cout << endl << endl;
 	system("pause");
 	return 0;
 }
