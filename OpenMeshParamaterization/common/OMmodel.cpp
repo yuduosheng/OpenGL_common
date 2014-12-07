@@ -1,6 +1,6 @@
 #include "OMmodel.h"
 
-//ofstream debug("debug.txt");
+ofstream debug("debug.txt");
 //ofstream debug2("debug2.txt");
 float cot(float d)
 {
@@ -413,3 +413,295 @@ void OMmodel::RenderModelWithColor()
 	glDrawArrays(GL_TRIANGLES, 0, meshVertexBuffer.size());
 }
 
+//---------------------------------------------------------------
+//---------------------------------------------------------------
+//---------------------------------------------------------------
+OMPmodel::OMPmodel()
+{
+}
+OMPmodel::~OMPmodel()
+{
+	/*
+	if (debug.good())
+	debug.close();
+	if (debug2.good())
+	debug2.close();*/
+}
+void OMPmodel::Param(const char *infile, const char *outfile, int solveType, int outType)
+{
+	// read mesh from file
+	if (!OpenMesh::IO::read_mesh(mesh, infile))
+	{
+		std::cerr << "Error: Cannot read mesh from " << infile << std::endl;
+	}
+	// this vertex property stores the vertex id
+	OpenMesh::VPropHandleT<uint> vertexID;
+	mesh.add_property(vertexID);
+	uint i = 0;
+	for (MyMesh::VertexIter v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); ++v_it)
+	{
+		mesh.property(vertexID, *v_it) = i;
+		++i;
+	}
+
+	//find a boundary half edge
+	MyMesh::HalfedgeHandle heh, heh_init;
+	for (MyMesh::HalfedgeIter h_it = mesh.halfedges_begin(); h_it != mesh.halfedges_end(); ++h_it)
+	{
+		if (mesh.is_boundary(*h_it))
+		{
+			heh_init = *h_it;
+			heh = heh_init;
+			break;
+		}
+	}
+	//mesh.property(vertexID, mesh.from_vertex_handle(heh));
+	//mesh.point(mesh.from_vertex_handle(heh));
+	//push first boundary vertex
+	meshBoundryStatus.push_back(meshBoundary(mesh.property(vertexID, mesh.from_vertex_handle(heh)), mesh.point(mesh.from_vertex_handle(heh))));
+
+	heh = mesh.next_halfedge_handle(heh);
+	// push all boundary vertex
+	while (heh != heh_init) {
+		meshBoundryStatus.push_back(meshBoundary(mesh.property(vertexID, mesh.from_vertex_handle(heh)), mesh.point(mesh.from_vertex_handle(heh)))); 
+		heh = mesh.next_halfedge_handle(heh);
+	}
+	//caculate length
+	OpenMesh::Vec3d vec;
+	for (i = 0; i < meshBoundryStatus.size() - 1; ++i)
+	{
+		vec = meshBoundryStatus[i + 1].position - meshBoundryStatus[i].position;
+		meshBoundryStatus[i].distanceToNext = vec.norm();
+		tLen += meshBoundryStatus[i].distanceToNext;
+	}
+	vec = meshBoundryStatus[0].position - meshBoundryStatus[i].position;
+	meshBoundryStatus[i].distanceToNext = vec.norm();
+	tLen += meshBoundryStatus[i].distanceToNext;
+	//get other information
+	mesh.request_vertex_status();
+	meshVetexNum = mesh.n_vertices();
+	mesh.request_face_status();
+	meshFaceNum = mesh.n_faces();
+
+	mesh.release_face_status();
+	mesh.release_vertex_status();
+
+	cout << "#vertices: " << meshVetexNum << endl;
+	cout << "#faces: " << meshFaceNum << endl;
+	cout << "#boundary vertices: " << meshBoundryStatus.size() << endl;
+	cout << "coner vertices: " << meshBoundryStatus[0].vertexID << " " << meshBoundryStatus[meshBoundryStatus.size()/3].vertexID<<" ";
+	cout << meshBoundryStatus[meshBoundryStatus.size() * 2 / 3].vertexID <<" "<< meshBoundryStatus[meshBoundryStatus.size() - 1].vertexID << endl;
+	cout << "Total length: " << tLen << endl;
+	//map interior vertex
+	//resize A and b
+	A.resize(meshVetexNum, meshVetexNum);
+	Bu.resize(meshVetexNum);
+	Bv.resize(meshVetexNum);
+	u.resize(meshVetexNum);
+	v.resize(meshVetexNum);
+	A.setZero();
+	Bu.setZero();
+	Bv.setZero();
+
+	vector<meshVertex> oneRing;
+	typedef Eigen::Triplet<double> T;
+	std::vector<T> tripletList;
+	for (MyMesh::VertexIter v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); ++v_it)
+	{
+		oneRing.clear();
+		if (!mesh.is_boundary(*v_it))
+		{
+			for (MyMesh::VertexVertexIter vv_it = mesh.vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+			{
+				oneRing.push_back(meshVertex(mesh.property(vertexID, *vv_it), mesh.point(*vv_it)));
+			}
+		
+			double wij = 0;
+			double sumWij = 0;
+			double cotaij = 0;
+			double cotbij = 0;
+			OpenMesh::Vec3d vi_12vi, vi_12v, vi12vi, vi12v;
+			for (int i = 0; i < oneRing.size(); ++i)
+			{
+				if (i == 0)
+				{
+					vi_12v  = mesh.point(*v_it) - oneRing[oneRing.size() - 1].position;
+					vi_12vi = oneRing[0].position - oneRing[oneRing.size() - 1].position;
+					vi12v   = mesh.point(*v_it) - oneRing[i + 1].position;
+					vi12vi  = oneRing[i].position - oneRing[i + 1].position;
+					
+				}
+				else
+					if (i == oneRing.size() - 1)
+				    {
+				    	vi_12v  = mesh.point(*v_it) - oneRing[i - 1].position;
+				    	vi_12vi = oneRing[i].position - oneRing[i - 1].position;
+				    	vi12v   = mesh.point(*v_it) - oneRing[0].position;
+				    	vi12vi  = oneRing[i].position - oneRing[0].position;
+				    }
+					else
+					{
+						vi_12v  = mesh.point(*v_it) - oneRing[i - 1].position;
+						vi_12vi = oneRing[i].position - oneRing[i - 1].position;
+						vi12v   = mesh.point(*v_it) - oneRing[i + 1].position;
+						vi12vi  = oneRing[i].position - oneRing[i + 1].position;
+					}
+				vi_12v.normalize();
+				vi_12vi.normalize();
+				vi12v.normalize();
+				vi12vi.normalize();
+				cotaij = cot(acos(dot(vi_12v, vi_12vi)));
+				cotbij = cot(acos(dot(vi12v, vi12vi)));
+				wij = 0.5 * (cotaij + cotbij);
+				sumWij += wij;
+				//insert
+				tripletList.push_back(T(mesh.property(vertexID, *v_it), oneRing[i].vertexID, wij));//insert wij (i != j)
+			}
+			tripletList.push_back(T(mesh.property(vertexID, *v_it), mesh.property(vertexID, *v_it), - sumWij));//when i = j 
+		}
+		else
+		{
+			tripletList.push_back(T(mesh.property(vertexID, *v_it), mesh.property(vertexID, *v_it), 1));// add boundary
+		}
+	}
+
+	A.setFromTriplets(tripletList.begin(), tripletList.end());
+	//debug << A << endl;
+	//map boundary to a unit square
+	BoundaryMap();
+	Solve(solveType);
+	//change the mesh and output
+
+	if (outType == 1)
+	{	
+		i = 0;
+	    for (MyMesh::VertexIter v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); ++v_it)
+	    {
+	    	mesh.set_point(*v_it, MyMesh::Point(u[i], v[i], 0));
+	    	++i;
+	    }
+	    // write mesh to output.*
+	    OpenMesh::IO::write_mesh(mesh, outfile); 
+	}
+	else
+	{
+		mesh.request_vertex_texcoords2D();
+		i = 0;
+		for (MyMesh::VertexIter v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); ++v_it)
+		{
+			mesh.set_texcoord2D(*v_it, MyMesh::TexCoord2D(u[i], v[i]));
+			++i;
+		}
+		// write mesh to output.*
+		OpenMesh::IO::Options wopt;
+		wopt += OpenMesh::IO::Options::VertexTexCoord;
+		OpenMesh::IO::write_mesh(mesh, outfile, wopt);
+		mesh.release_vertex_texcoords2D();
+	}
+}
+
+//map to a unit square
+void OMPmodel::BoundaryMap()
+{
+	//map square
+	double clen = 0;
+	int    state = 0;
+	for (int i = 0; i < meshBoundryStatus.size(); ++i)
+	{
+		if (clen < 1.0)
+		{
+			Bu[meshBoundryStatus[i].vertexID] = clen;
+			Bv[meshBoundryStatus[i].vertexID] = 0;
+		}
+		else
+			if (1.0 <= clen && clen < 2.0)
+			{
+			    if (state == 0)
+			    {
+			    	Bu[meshBoundryStatus[i].vertexID] = 1.0;
+			    	Bv[meshBoundryStatus[i].vertexID] = 0;
+					state = 1;
+			    }
+			    else
+			    {
+					Bu[meshBoundryStatus[i].vertexID] = 1.0;
+					Bv[meshBoundryStatus[i].vertexID] = clen - 1.0;
+			    }
+			}
+			else
+				if (2.0 <= clen && clen < 3.0)
+				{
+			        if (state == 1)
+			        {
+			        	Bu[meshBoundryStatus[i].vertexID] = 1.0;
+			        	Bv[meshBoundryStatus[i].vertexID] = 1.0;
+			        	state = 0;
+			        }
+			        else
+			        {
+			        	Bu[meshBoundryStatus[i].vertexID] = 3.0 - clen;
+			        	Bv[meshBoundryStatus[i].vertexID] = 1.0;
+			        }
+				}
+				else
+					if (clen >= 3.0)
+					{
+			            if (state == 0)
+			            {
+			            	Bu[meshBoundryStatus[i].vertexID] = 0.0;
+			            	Bv[meshBoundryStatus[i].vertexID] = 1.0;
+			            	state = 1;
+			            }
+			            else
+			            {
+			            	Bu[meshBoundryStatus[i].vertexID] = 0.0;
+			            	Bv[meshBoundryStatus[i].vertexID] = 4 - clen;
+			            }
+					}
+		clen += (4.0 * meshBoundryStatus[i].distanceToNext)/ tLen;
+		//debug << Bu[meshBoundryStatus[i].vertexID] << " " << Bv[meshBoundryStatus[i].vertexID] <<endl;
+	}
+}
+//solve
+bool OMPmodel::Solve(int type)
+{
+	if (type == 1)
+	{
+		solver1.compute(A);
+		if (solver1.info() != Success) {
+			// decomposition failed
+			return -1;
+		}
+		u = solver1.solve(Bu);
+		if (solver1.info() != Success) {
+			// solving failed
+			return -1;
+		}
+		v = solver1.solve(Bv);
+		if (solver1.info() != Success) {
+			// solving failed
+			return -1;
+		}
+	}
+	else
+	{
+		solver2.compute(A);
+		if (solver2.info() != Success) {
+			// decomposition failed
+			return -1;
+		}
+		u = solver2.solve(Bu);
+		if (solver2.info() != Success) {
+			// solving failed
+			return -1;
+		}
+		v = solver2.solve(Bv);
+		if (solver2.info() != Success) {
+			// solving failed
+			return -1;
+		}
+	}
+	debug << u << endl;
+	debug << "----------------------------------------------------" << endl;
+	debug << v << endl;
+}

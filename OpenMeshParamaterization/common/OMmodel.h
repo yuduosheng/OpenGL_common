@@ -2,6 +2,14 @@
 #include <OpenMesh/Core/IO/MeshIO.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 
+
+#include <Eigen/Dense>
+#include <Eigen/SparseCholesky>
+#include <Eigen/IterativeLinearSolvers>
+#include <Eigen/SparseLU>
+using namespace Eigen;
+
+
 typedef OpenMesh::TriMesh_ArrayKernelT<>  MyMesh;
 
 #define	FlatShading 0x08
@@ -70,4 +78,51 @@ public:
 	void OpenMeshReadFile(const char * filename);
 	void RenderModel();
 	void RenderModelWithColor();
+};
+
+struct meshBoundary
+{
+	int             vertexID;
+	MyMesh::Point   position;
+	double          distanceToNext;
+	meshBoundary(int id, MyMesh::Point pos)
+	{
+		vertexID = id;
+		position = pos;
+	}
+};
+struct meshVertex
+{
+	int             vertexID;
+	MyMesh::Point   position;
+
+	meshVertex(int id, MyMesh::Point pos)
+	{
+		vertexID = id;
+		position = pos;
+	}
+};
+
+
+class OMPmodel
+{
+private:
+	MyMesh                                        mesh;
+	GLint                                         meshVetexNum = 0;
+	GLint                                         meshFaceNum = 0;
+	double                                        tLen = 0;
+	vector<meshBoundary>                          meshBoundryStatus;
+						                          
+	SparseMatrix<double>                          A;
+	VectorXd                                      Bu, Bv, u, v; 
+
+	SparseLU<SparseMatrix<double>>                solver1;
+	BiCGSTAB<SparseMatrix<double>>                solver2;
+public:
+	OMPmodel();
+	~OMPmodel();
+	void Param(const char *infile, const char *outfile, int solveType, int outType);
+	void BoundaryMap();
+	void InteriorMap();
+	bool Solve(int solverType);
 };
