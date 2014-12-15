@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenMeshParamaterization", "OpenMeshParamaterization\OpenMeshParamaterization.vcxproj", "{2BA6E0AB-230A-44A3-B113-DEF9FAC8C199}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FEM", "FEM\FEM.vcxproj", "{D03F5E6D-415D-4123-8233-133CD7338F06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -66,6 +68,12 @@ Global
 		{2BA6E0AB-230A-44A3-B113-DEF9FAC8C199}.new release|Win32.Build.0 = Release|Win32
 		{2BA6E0AB-230A-44A3-B113-DEF9FAC8C199}.Release|Win32.ActiveCfg = Release|Win32
 		{2BA6E0AB-230A-44A3-B113-DEF9FAC8C199}.Release|Win32.Build.0 = Release|Win32
+		{D03F5E6D-415D-4123-8233-133CD7338F06}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D03F5E6D-415D-4123-8233-133CD7338F06}.Debug|Win32.Build.0 = Debug|Win32
+		{D03F5E6D-415D-4123-8233-133CD7338F06}.new release|Win32.ActiveCfg = Release|Win32
+		{D03F5E6D-415D-4123-8233-133CD7338F06}.new release|Win32.Build.0 = Release|Win32
+		{D03F5E6D-415D-4123-8233-133CD7338F06}.Release|Win32.ActiveCfg = Release|Win32
+		{D03F5E6D-415D-4123-8233-133CD7338F06}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
