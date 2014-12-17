@@ -5,6 +5,12 @@
 #include <map>
 #include "GameTimer.h"
 #include <GL/wglew.h>
+#include <GL/freeglut.h>
+
+
+#include <Eigen/Dense>
+#include <Eigen/IterativeLinearSolvers>
+using namespace Eigen;
 
 #pragma comment(lib, "glew32.lib")
 #pragma comment(lib, "opengl32.lib")
@@ -12,6 +18,8 @@
 #pragma comment(lib, "OpenMeshCore.lib")
 #pragma comment(lib, "OpenMeshTools.lib")
 
+extern ofstream debug;
+float scale = 5.0f;
 const int width = 800, height = 600;
 
 #define EPSILON 0.001f
@@ -21,7 +29,7 @@ float timeStep = 1 / 60.0f;
 float currentTime = 0;
 float accumulator = timeStep;
 int selected_index = -1;
-
+int isMouseButtonDown = 0;
 
 struct Tetrahedron {
 	int indices[4];			//indices
@@ -59,10 +67,10 @@ int oldX = 0, oldY = 0;
 float rX = 15, rY = 0;
 int state = 1;
 float dist = -2.5f;
-const int GRID_SIZE = 10;
+const int GRID_SIZE = 5;
 
 
-glm::vec3 gravity = glm::vec3(0.0f, -9.81f, 0.0f);
+glm::vec3 gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 
 
 GLint viewport[4];
@@ -230,7 +238,75 @@ void CalculateK() {
 		}
 	}
 }
+void ReadModelFromFile(const char *filename)
+{
+	string fileName = filename;
+	string suffix = ".node";
+	string suffix2 = ".ele";
+	fileName += suffix;
+	ifstream nodeFile(fileName.c_str(), ios::in);
+	if (!nodeFile.is_open())
+	{
+		cout << fileName << " open fail." << endl;
+		return;
+	}
 
+	nodeFile >> total_points;
+	X.resize(total_points);
+	Xi.resize(total_points);
+	IsFixed.resize(total_points);
+	int noUse;
+	nodeFile >> noUse >> noUse >> noUse;
+	int ind = 0;
+	glm::vec3 nodePosition;
+	for (int i = 0; i < total_points; ++i)
+	{
+		nodeFile >> noUse;
+		nodeFile >> nodePosition.x >> nodePosition.y >> nodePosition.z;
+		//debug << nodePosition.x << " " << nodePosition.y << " " << nodePosition.z << endl;
+		X[i] = nodePosition;
+		Xi[i] = X[i];
+		//Make the first few points fixed
+		if (Xi[i].y < 0.05)
+		{
+			IsFixed[i] = true;
+			ind = i;
+		}
+		else
+		{
+			IsFixed[i] = false;
+		}
+	}
+	float k = X[ind].y;
+	for (size_t i = 0; i<total_points; i++) {
+		X[i].y -= k;
+	}
+
+	nodeFile.close();
+
+	fileName = filename;
+	fileName += suffix2;
+
+	ifstream eleFile(fileName.c_str(), ios::in);
+	if (!eleFile.is_open())
+	{
+		cout << fileName << " open fail." << endl;
+		return;
+	}
+
+	eleFile >> total_tetrahedra;
+	eleFile >> noUse >> noUse;
+
+	for (int i = 0; i < total_tetrahedra; ++i)
+	{
+		int p0, p1, p2, p3;
+		eleFile >> noUse;
+		eleFile >> p0 >> p1 >> p2 >> p3;
+		//debug << p0 << " " << p1 << " " << p2 << " " << p3 <<endl;
+		AddTetrahedron(p0, p1, p2, p3);
+	}
+	eleFile.close();
+}
 
 void GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth) {
 	total_points = (xdim + 1)*(ydim + 1)*(zdim + 1);
@@ -607,11 +683,73 @@ void DynamicsAssembly(float dt) {
 		b[k] += V[k] * m_i;
 	}
 }
+void EigenSolve()
+{
+	SparseMatrix<double> eA;
+	VectorXd             eb, ev;
+	eA.resize(3 * total_points, 3 * total_points);
+	eA.setZero();
+	eb.resize(3 * total_points);
+	eb.setZero();
+	ev.resize(3 * total_points);
+
+	typedef Eigen::Triplet<double> T;
+	std::vector<T> tripletList;
+
+	for (size_t k = 0; k < total_points; k++)
+	{
+		//if (IsFixed[k])
+		//continue;
+		matrix_map tmp = A_row[k];
+		matrix_iterator Abegin = tmp.begin();
+		matrix_iterator Aend = tmp.end();
+
+		for (matrix_iterator K = Abegin; K != Aend; ++K)
+		{
+			unsigned int a = K->first;
+			glm::mat3 A_ij = K->second;
+			for (int i = 0; i < 3; ++i)
+			{
+				for (int j = 0; j < 3; ++j)
+				{
+					tripletList.push_back(T(k + i, a * 3 + j, A_ij[i][j]));
+				}
+			}
+
+		}
+
+	}
+	eA.setFromTriplets(tripletList.begin(), tripletList.end());
+
+	for (size_t k = 0; k < total_points; ++k)
+	{
+		int ind = k * 3;
+		eb[ind] = b[k].x;
+		eb[ind + 1] = b[k].y;
+		eb[ind + 2] = b[k].z;
+	}
 
 
+	ConjugateGradient<SparseMatrix<double> > solver;
+	solver.compute(eA);
+	if (solver.info() != Success) {
+		// decomposition failed
+		return;
+	}
+	ev = solver.solve(eb);
+	if (solver.info() != Success) {
+		// solving failed
+		return;
+	}
 
-
-
+	for (size_t k = 0; k < total_points; ++k)
+	{
+		int ind = k * 3;
+		V[k].x = ev[ind];
+		V[k].y = ev[ind + 1];
+		V[k].z = ev[ind + 2];
+	}
+}
 void ConjugateGradientSolver(float dt) {
 
 
@@ -751,6 +889,7 @@ void StepPhysics(float dt) {
 	DynamicsAssembly(dt);
 
 	ConjugateGradientSolver(dt);
+	//EigenSolve();
 
 	UpdatePosition(dt);
 
@@ -767,13 +906,13 @@ public:
 	void                    UpdateScene();
 	void                    Rendering();
 	void                    onResize(GLFWwindow* window, int w, int h);
-		                    
+
 	void                    onMouseWheel(GLFWwindow* window, double x, double y);
 	void                    onMouseMove(GLFWwindow* window, double xd, double yd);
 	void                    onMouseButton(GLFWwindow* window, int button, int action, int mods);
 	void                    onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
-		                    
-private:                    
+
+private:
 	void                    buildGeometryBuffers();
 	void                    buildShader();
 private:
@@ -795,13 +934,14 @@ int main(void)
 
 FEMTest::FEMTest() : App(), timer()
 {
-
+	mWidth = width;
+	mHeight = height;
 }
 
 FEMTest::~FEMTest()
 {
 	// Cleanup VBO and shader
-
+	OnShutdown();
 }
 
 bool FEMTest::Init()
@@ -809,7 +949,8 @@ bool FEMTest::Init()
 	if (!App::Init())
 		return false;
 
-	GenerateBlocks(10, 3, 3, 0.1f, 0.1f, 0.1f);
+	//GenerateBlocks(10, 3, 3, 0.1f, 0.1f, 0.1f);
+	ReadModelFromFile("bunny.1");
 	total_tetrahedra = tetrahedra.size();
 
 	total_points = X.size();
@@ -829,7 +970,7 @@ bool FEMTest::Init()
 	//fill in V
 	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
 
-	startTime = (float)glfwGetTime();
+	startTime = (float)glutGet(GLUT_ELAPSED_TIME);
 	currentTime = startTime;
 
 	// get ticks per second
@@ -839,18 +980,30 @@ bool FEMTest::Init()
 	QueryPerformanceCounter(&t1);
 	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glPointSize(5);
+	glPointSize(2);
 	wglSwapIntervalEXT(0);
 
 	CalculateK();
 	ClearStiffnessAssembly();
 	RecalcMassMatrix();
 	InitializePlastic();
+
+	onResize(window, width, height);
 }
 
-void FEMTest::onResize(GLFWwindow* window, int w, int h)
+void FEMTest::onResize(GLFWwindow* window, int nw, int nh)
 {
-	App::onResize(window, w, h);
+	App::onResize(window, nw, nh);
+
+	glViewport(0, 0, nw, nh);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(60, (GLfloat)nw / (GLfloat)nh, 0.1f, 100.0f);
+
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glGetDoublev(GL_PROJECTION_MATRIX, P);
+
+	glMatrixMode(GL_MODELVIEW);
 }
 
 void FEMTest::UpdateScene()
@@ -859,8 +1012,7 @@ void FEMTest::UpdateScene()
 }
 void FEMTest::Rendering()
 {
-	size_t i = 0;
-	float newTime = (float)glfwGetTime();
+	float newTime = (float)glutGet(GLUT_ELAPSED_TIME);
 	frameTime = newTime - currentTime;
 	currentTime = newTime;
 	//accumulator += frameTime;
@@ -883,11 +1035,16 @@ void FEMTest::Rendering()
 
 	sprintf_s(info, "FPS: %3.2f, Frame time (GLUT): %3.4f msecs, Frame time (QP): %3.3f, Stiffness Warp: %s", fps, frameTime, frameTimeQP, bUseStiffnessWarping ? "On" : "Off");
 	glfwSetWindowTitle(window, info);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
 	glTranslatef(0, 0, dist);
 	glRotatef(rX, 1, 0, 0);
 	glRotatef(rY, 0, 1, 0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glScaled(scale, scale, scale);
+
 
 	glGetDoublev(GL_MODELVIEW_MATRIX, MV);
 	viewDir.x = (float)-MV[2];
@@ -925,7 +1082,7 @@ void FEMTest::Rendering()
 
 	//draw points	
 	glBegin(GL_POINTS);
-	for (i = 0; i<total_points; i++) {
+	for (int i = 0; i<total_points; i++) {
 		glm::vec3 p = X[i];
 		int is = (i == selected_index);
 		glColor3f((float)!is, (float)is, (float)is);
@@ -935,36 +1092,40 @@ void FEMTest::Rendering()
 }
 void FEMTest::onMouseWheel(GLFWwindow* window, double x, double y)
 {
-
+	float mouseWheelScale = 0.3f;
+	scale += mouseWheelScale  * (float)y;
 }
 void FEMTest::onMouseMove(GLFWwindow* window, double xd, double yd)
 {
 	double x = xd;
 	double y = yd;
-	if (selected_index == -1) {
-		if (state == 0)
-			dist *= (1 + (y - oldY) / 60.0f);
-		else
-		{
-			rY += (x - oldX) / 5.0f;
-			rX += (y - oldY) / 5.0f;
+	if (isMouseButtonDown)
+	{
+		if (selected_index == -1) {
+			if (state == 0)
+				dist *= (1 + (y - oldY) / 60.0f);
+			else
+			{
+				rY += (x - oldX) / 5.0f;
+				rX += (y - oldY) / 5.0f;
+			}
 		}
-	}
-	else {
+		else {
 
-		float delta = 1000 / abs(dist);
-		float valX = (x - oldX) / delta;
-		float valY = (oldY - y) / delta;
+			float delta = 1000 / abs(dist);
+			float valX = (x - oldX) / delta;
+			float valY = (oldY - y) / delta;
 
-		V[selected_index] = glm::vec3(0);
-		X[selected_index].x += Right[0] * valX;
-		float newValue = X[selected_index].y + Up[1] * valY;
-		if (newValue>0)
-			X[selected_index].y = newValue;
-		X[selected_index].z += Right[2] * valX + Up[2] * valY;
+			V[selected_index] = glm::vec3(0);
+			X[selected_index].x += Right[0] * valX;
+			float newValue = X[selected_index].y + Up[1] * valY;
+			if (newValue>0)
+				X[selected_index].y = newValue;
+			X[selected_index].z += Right[2] * valX + Up[2] * valY;
+		}
+		oldX = x;
+		oldY = y;
 	}
-	oldX = x;
-	oldY = y;
 
 }
 void FEMTest::onMouseButton(GLFWwindow* window, int button, int action, int mods)
@@ -988,6 +1149,7 @@ void FEMTest::onMouseButton(GLFWwindow* window, int button, int action, int mods
 		gluUnProject(window_x, window_y, winZ, MV, P, viewport, &objX, &objY, &objZ);
 
 		glm::vec3 pt(objX, objY, objZ);
+		cout << objX << objY << objZ << endl;
 		printf("\nObj [ %3.3f,%3.3f,%3.3f ]", objX, objY, objZ);
 		size_t i = 0;
 		for (i = 0; i<total_points; i++) {
@@ -999,11 +1161,13 @@ void FEMTest::onMouseButton(GLFWwindow* window, int button, int action, int mods
 				break;
 			}
 		}
+		isMouseButtonDown = 1;
 	}
 	else if ((button == GLFW_MOUSE_BUTTON_1) && (action == GLFW_RELEASE))
 	{
 		selected_index = -1;
 		UpdateOrientation();
+		isMouseButtonDown = 0;
 	}
 
 	if ((button == GLFW_MOUSE_BUTTON_2) && (action == GLFW_PRESS))
@@ -1019,7 +1183,12 @@ void FEMTest::onMouseButton(GLFWwindow* window, int button, int action, int mods
 void FEMTest::onKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	App::onKey(window, key, scancode, action, mods);
-	//capture
+	if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS))
+	{
+		bUseStiffnessWarping = !bUseStiffnessWarping;
+	}
+	printf("Stiffness Warping %s\n", bUseStiffnessWarping ? "On" : "Off");
+
 }
 void FEMTest::buildGeometryBuffers()
 {
