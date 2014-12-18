@@ -698,8 +698,8 @@ void EigenSolve()
 
 	for (size_t k = 0; k < total_points; k++)
 	{
-		//if (IsFixed[k])
-		//continue;
+		if (IsFixed[k])
+			continue;
 		matrix_map tmp = A_row[k];
 		matrix_iterator Abegin = tmp.begin();
 		matrix_iterator Aend = tmp.end();
@@ -712,7 +712,7 @@ void EigenSolve()
 			{
 				for (int j = 0; j < 3; ++j)
 				{
-					tripletList.push_back(T(k + i, a * 3 + j, A_ij[i][j]));
+					tripletList.push_back(T(k * 3 + i, a * 3 + j, A_ij[i][j]));
 				}
 			}
 
@@ -1186,8 +1186,8 @@ void FEMTest::onKey(GLFWwindow* window, int key, int scancode, int action, int m
 	if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS))
 	{
 		bUseStiffnessWarping = !bUseStiffnessWarping;
+		printf("Stiffness Warping %s\n", bUseStiffnessWarping ? "On" : "Off");
 	}
-	printf("Stiffness Warping %s\n", bUseStiffnessWarping ? "On" : "Off");
 
 }
 void FEMTest::buildGeometryBuffers()
