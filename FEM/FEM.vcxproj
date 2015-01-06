@@ -83,6 +83,7 @@
     <ClCompile Include="common\camera.cpp" />
     <ClCompile Include="common\GameTimer.cpp" />
     <ClCompile Include="common\OMmodel.cpp" />
+    <ClCompile Include="deformableobject.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -90,6 +91,8 @@
     <ClInclude Include="common\camera.h" />
     <ClInclude Include="common\GameTimer.h" />
     <ClInclude Include="common\OMmodel.h" />
+    <ClInclude Include="deformableobject.h" />
+    <ClInclude Include="hash.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

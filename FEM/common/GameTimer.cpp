@@ -1,7 +1,3 @@
-//***************************************************************************************
-// GameTimer.cpp by Frank Luna (C) 2011 All Rights Reserved.
-//***************************************************************************************
-
 #include <windows.h>
 #include "GameTimer.h"
 
@@ -11,7 +7,7 @@ GameTimer::GameTimer()
 {
 	__int64 countsPerSec;
 	QueryPerformanceFrequency((LARGE_INTEGER*)&countsPerSec);
-	mSecondsPerCount = 1.0 / (double)countsPerSec;
+	mSecondsPerCount = 1000.0 / (double)countsPerSec;
 }
 
 // Returns the total time elapsed since Reset() was called, NOT counting any
