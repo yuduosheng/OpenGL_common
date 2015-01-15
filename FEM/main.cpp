@@ -276,7 +276,7 @@ void FEMTest::UpdateScene()
 
 		for (int i = 0; i < g_models.size(); ++i)
 		{
-            g_models[i].StepPhysics(timeStep);
+            //g_models[i].StepPhysics(timeStep);
 		}
 			
 		accumulator -= timeStep;
@@ -333,6 +333,65 @@ void FEMTest::Rendering()
 
 	for (int i = 0; i < g_models.size(); ++i)
 		g_models[i].renderModel();
+
+	//draw grid
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	for (int i = 0; i < g_models[0].gi-1; ++i)
+		for (int j = 0; j < g_models[0].gj-1; ++j)
+			for (int k = 0; k < g_models[0].gk-1; ++k)
+			{
+		int n1 = i * g_models[0].gj * g_models[0].gk + j * g_models[0].gk + k;
+		int n2 = n1 + 1;
+		int n3 = i * g_models[0].gj * g_models[0].gk + (j + 1) * g_models[0].gk + k;
+		int n4 = n3 + 1;
+		int n5 = (i + 1) * g_models[0].gj * g_models[0].gk + j * g_models[0].gk + k;
+		int n6 = n5 + 1;
+		int n7 = (i + 1) * g_models[0].gj * g_models[0].gk + (j + 1) * g_models[0].gk + k;
+		int n8 = n7 + 1;
+
+		
+
+		glm::vec3 p1 = g_models[0].grid[n1];
+		glm::vec3 p2 = g_models[0].grid[n2];
+		glm::vec3 p3 = g_models[0].grid[n3];
+		glm::vec3 p4 = g_models[0].grid[n4];
+		glm::vec3 p5 = g_models[0].grid[n5];
+		glm::vec3 p6 = g_models[0].grid[n6];
+		glm::vec3 p7 = g_models[0].grid[n7];
+		glm::vec3 p8 = g_models[0].grid[n8];
+
+		glVertex3f(p1.x, p1.y, p1.z);		glVertex3f(p2.x, p2.y, p2.z);
+		glVertex3f(p4.x, p4.y, p4.z);		glVertex3f(p2.x, p2.y, p2.z);
+		glVertex3f(p4.x, p4.y, p4.z);		glVertex3f(p3.x, p3.y, p3.z);
+		glVertex3f(p1.x, p1.y, p1.z);		glVertex3f(p3.x, p3.y, p3.z);
+
+		glVertex3f(p1.x, p1.y, p1.z);		glVertex3f(p5.x, p5.y, p5.z);
+		glVertex3f(p2.x, p2.y, p2.z);		glVertex3f(p6.x, p6.y, p6.z);
+		glVertex3f(p7.x, p7.y, p7.z);		glVertex3f(p3.x, p3.y, p3.z);
+		glVertex3f(p4.x, p4.y, p4.z);		glVertex3f(p8.x, p8.y, p8.z);
+
+		glVertex3f(p5.x, p5.y, p5.z);		glVertex3f(p6.x, p6.y, p6.z);
+		glVertex3f(p5.x, p5.y, p5.z);		glVertex3f(p7.x, p7.y, p7.z);
+		glVertex3f(p6.x, p6.y, p6.z);		glVertex3f(p8.x, p8.y, p8.z);
+		glVertex3f(p7.x, p7.y, p7.z);		glVertex3f(p8.x, p8.y, p8.z);
+			}
+	glEnd();
+
+	//draw distance
+	glColor3f(0.0, 1.0, 0.0);
+	glBegin(GL_LINES);
+	for (int i = 0; i < 30; ++i)
+	{
+		glm::vec3 p = g_models[0].grid[i];
+		glm::vec3 p2 = g_models[0].distanceFildV[i];
+		glVertex3f(p.x, p.y, p.z);
+		glVertex3f(p2.x, p2.y, p2.z);
+	}
+	glEnd();
+
+/*
+	//draw gradient
 	glBegin(GL_LINES);
 	for (int i = 0; i < g_models[0].total_points; ++i)
 	{
@@ -345,7 +404,7 @@ void FEMTest::Rendering()
 		glVertex3f(p2.x, p2.y, p2.z);
 	}
 	glEnd();
-	/*
+	
 		glColor3f(0.75, 0.75, 0.75);
 		{
 		glBegin(GL_LINES);
@@ -365,15 +424,18 @@ void FEMTest::Rendering()
 			glVertex3f(p2.x, p2.y, p2.z);		glVertex3f(p3.x, p3.y, p3.z);
 		glEnd();
 }
-
+*/
 		//draw points	
 		glBegin(GL_POINTS);
-		glm::vec3 p = glm::vec3(-0.0240009,   0.139007, - 0.0211086);
+		    glm::vec3 p = glm::vec3(g_models[0].ABmx, g_models[0].ABmy, g_models[0].ABmz);
 			glColor3f(1.0f, 1.0f, 0.0f);
 			glVertex3f(p.x, p.y, p.z);
 
+			glm::vec3 p2 = glm::vec3(g_models[0].ABMx, g_models[0].ABMy, g_models[0].ABMz);
+			glColor3f(1.0f, 1.0f, 0.0f);
+			glVertex3f(p2.x, p2.y, p2.z);
 		glEnd();
-*/
+
 }
 void FEMTest::onMouseWheel(GLFWwindow* window, double x, double y)
 {

@@ -844,7 +844,7 @@ void DeformableObject::DistanceFildAndGradientFild()
 	mx = X[0].x;   Mx = X[0].x;
 	my = X[0].y;   My = X[0].y;
 	mz = X[0].z;   Mz = X[0].z;
-	for (int i = 1; i < total_points; ++i)
+	for (int i = 0; i < total_points; ++i)
 	{
 		mx = glm::min(X[i].x, mx);
 		my = glm::min(X[i].y, my);
@@ -854,14 +854,19 @@ void DeformableObject::DistanceFildAndGradientFild()
 		Mz = glm::max(X[i].z, Mz);
 	}
 	//debug << mx << " " << my << " " << mz << " " << Mx << " " << My << " " << Mz << endl;
-	mx -= l;
-	my -= l;
-	mz -= l;
 
 	ABmx = mx;
 	ABmy = my;
 	ABmz = mz;
-
+	ABMx = Mx;
+	ABMy = My;
+	ABMz = Mz;
+	mx -= l;
+	my -= l;
+	mz -= l;
+	Mx += l;
+	My += l;
+	Mz += l;
 	Mx += l;
 	My += l;
 	Mz += l;
@@ -873,15 +878,16 @@ void DeformableObject::DistanceFildAndGradientFild()
 	int xi = li / l + 1;
 	int yj = lj / l + 1;
 	int zk = lk / l + 1;
+
 	gi = xi;
 	gj = yj;
 	gk = zk;
 	//debug << l << " " << gi << " " << gj << " " << gk << endl;
-
-	vector<glm::vec3> grid;
+	cout << li <<"  "<<l<<"  "<< xi << " " << yj << " " << zk << endl;
 	grid.resize(xi*yj*zk);
 	distanceFild.resize(xi*yj*zk);
 	gradientFild.resize(xi*yj*zk);
+	distanceFildV.resize(xi*yj*zk);
 
 	for (int i = 0; i < xi; ++i)
 		for (int j = 0; j < yj; ++j)
@@ -890,6 +896,7 @@ void DeformableObject::DistanceFildAndGradientFild()
 		int index = i * yj * zk + j * zk + k;
 		grid[index] = glm::vec3(mx + (i * l), my + (j * l), mz + (k * l));
 		distanceFild[index] = minDistanceBetweenVetexAndTriangle(grid[index], &bTriangle);
+		distanceFildV[index] = dhelp2;
 		//debug << distanceFild[index] << endl;
 			}
 	//debug << "distanceFild over." << endl;
@@ -918,12 +925,16 @@ float DeformableObject::minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<B
 	float distance = 100000;
 	for (int i = 0; i < total_btriangle; ++i)
 	{
-		float d = DistanceBetweenVT(v, (*bTriangle)[i]);
-		distance = glm::min(distance, d);
+		float d = DistanceBetweenVT(v, (*bTriangle)[i], &dhelp);
+		if (distance < d)
+		{
+			distance = glm::min(distance, d);
+			dhelp2 = dhelp - v;
+		}
 	}
 	return distance;
 }
-float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
+float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm::vec3 *dhelp)
 {//geometric tools for computer graphics p.275
 	glm::vec3 v0, v1, v2, dv;
 	float a, b, c, d, e, f;
@@ -951,6 +962,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 		float invDet = 1 / det;
 		s *= invDet;
 		t *= invDet;
+		*dhelp = v0 + s*v1 + t*v2;
 		return sqrt(a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f);
 	}
 	else
@@ -964,12 +976,14 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 				{//on t = 0;
 					t = 0;
 					s = (d >= 0 ? 0 : (-d >= a ? 1 : -d / a));
+					*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * d*s + f);
 				}
 				else
 				{
 					s = 0;
 					t = (e >= 0 ? 0 : (-e >= c ? 1 : -e / c));
+					*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(c*t*t + 2 * e*t + f);
 				}
 			}
@@ -977,6 +991,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 			{//region 3
 				s = 0;
 				t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
+				*dhelp = v0 + s*v1 + t*v2;
 				return sqrt(c*t*t + 2 * e*t + f);
 			}
 		}
@@ -984,6 +999,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 		{//region 5
 			t = 0;
 			s = (d >= 0 ? 0 : (-d >= a ? 1 : -d/a));
+			*dhelp = v0 + s*v1 + t*v2;
 			return sqrt(a*s*s + 2 * d*s + 2 * e*t + f);
 		}
 	    }
@@ -999,12 +1015,14 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 					float denom = a - 2 * b + c;
 					s = (numer >= denom ? 1 : numer/denom);
 					t = 1 - s;
+					*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
 				}
 				else
 				{
 					s = 0;
 					t = (tmp1 < 0 ? 1 : (e >= 0 ? 0 : -e/c));
+					*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(c*t*t + 2 * e*t + f);
 				}
 			}
@@ -1018,12 +1036,14 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 					float denom = a - 2 * b + c;
 					s = (numer >= denom ? 1 : numer / denom);
 					t = 1 - s;
+					*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
 				}
 				else
 				{// or on 
 					t = 0;
 					s = (tmp1 < 0 ? 1 : (d >= 0 ? 0 : -d / a));
+					*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * d*s + f);
 				}
 			}
@@ -1040,7 +1060,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
 					s = (numer >= denom ? 1 : numer / denom);
 				}
 				t = 1 - s;
-
+				*dhelp = v0 + s*v1 + t*v2;
 				return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
 			}
 		}

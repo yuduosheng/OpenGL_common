@@ -30,13 +30,18 @@ class DeformableObject
 public:
 	vector<Tetrahedron> tetrahedra;
 	vector<BoundaryTriangle> bTriangle;
+	vector<glm::vec3> grid;
 	vector<float> distanceFild;
+	vector<glm::vec3> distanceFildV;
+	glm::vec3 dhelp;
+	glm::vec3 dhelp2;
+	float gs, gt;
 	vector<glm::vec3> gradientFild;
 	vector<float> distanceV;
 	vector<glm::vec3> gradientV;
 	vector<vector<int>> tetrahedraOfVertices;
 	float totalLength = 0;
-	float ABmx, ABmy, ABmz;
+	float ABmx, ABmy, ABmz, ABMx, ABMy, ABMz;
 	float l;//local grid size
 	int gi, gj, gk;
 
@@ -153,7 +158,7 @@ public:
 
 	void                    DistanceFildAndGradientFild();
 	float                   minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle);
-	float                   DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt);
+	float                   DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm::vec3 *dhelp);
 	void                    VetexDistanceAndGradient();
 	void                    InterpolateDistanceGradient(int i, glm::vec3 *g, float *d);
 	void                    GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth);
