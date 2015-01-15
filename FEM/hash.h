@@ -1,24 +1,25 @@
+#pragma once
 #include <App.h>
 #include <list>
 #include <vector>
-struct node
+struct Vertex
 {
-	int objID;
-	int index;
-	glm::vec3 position;
-	node(int id, int i, glm::vec3 v)
-	{
-		objID = id;
-		index = i;
-		position = v;
-	}
+	int objId;
+	int localIndex;
+	glm::vec3 p;
 };
 
 class HashCell
 {
 public:
 	double T = 0;
-	list<node> nodes;
+	list<Vertex> nodes;
+	HashCell()
+	{
+	}
+	~HashCell()
+	{
+	}
 };
 
 class HashMap
@@ -26,4 +27,16 @@ class HashMap
 public:
 	double T = 0;
 	vector<HashCell> cell;
+
+	HashMap(int n)
+	{
+		for (int i = 0; i < n; ++i)
+		{
+			HashCell hc;
+			cell.push_back(hc);
+		}
+	}
+	~HashMap()
+	{
+	}
 };

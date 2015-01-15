@@ -17,12 +17,14 @@ using namespace Eigen;
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "OpenMeshCore.lib")
 #pragma comment(lib, "OpenMeshTools.lib")
+//#pragma pack(push,1)
+
 
 extern ofstream debug;
+extern ofstream debug2;
+float scale = 3.0f;
 
-float scale = 5.0f;
-
-const int width = 800, height = 600;
+const int width = 1024, height = 768;
 
 float timeStep = 1 / 60.0f;
 float currentTime = 0;
@@ -34,11 +36,8 @@ int isMouseButtonDown = 0;
 int oldX = 0, oldY = 0;
 float rX = 15, rY = 0;
 int state = 1;
-float dist = -2.5f;
-const int GRID_SIZE = 1;
-
-
-glm::vec3 gravity = glm::vec3(0.0f, 0.0f, 0.0f);
+float dist = -5.0f;
+const int GRID_SIZE = 10;
 
 
 GLint viewport[4];
@@ -56,8 +55,6 @@ float startTime = 0, fps = 0;
 int totalFrames = 0;
 
 char info[MAX_PATH] = { 0 };
-
-
 
 
 void DrawGrid()
@@ -143,120 +140,15 @@ void EigenSolve()
 	}
 }*/
 
+
 __int64 p1 = 73856093;
 __int64 p2 = 19349663;
 __int64 p3 = 83492791;
-float l = 0;
-int n = 199;
-void firstPass(HashMap H, vector<DeformableObject> objects)
-{
-	int objId = 0;
-	vector<DeformableObject>::iterator object_iter;
-	for (object_iter = objects.begin(); object_iter != objects.end(); object_iter++)
-	{
-		for (int i = 0; i < object_iter->total_points; ++i)
-		{
-			glm::vec3 p = object_iter->X[i];
-			int x = (int)(p.x / l);
-			int y = (int)(p.y / l);
-			int z = (int)(p.z / l);
-			int h = ((x * p1) ^ (y * p2) ^ (z * p3)) % n;
-			if (H.cell[h].T != H.T)
-			{
-				H.cell[h].nodes.clear();
-				H.cell[h].T = H.T;
-			}
-			H.cell[h].nodes.push_back(node(objId, i, object_iter->X[i]));
-		}
-		++objId;
-	}
-}
-void secondPass(HashMap H, vector<DeformableObject> objects)
-{
-	int objId = 0;
-	vector<DeformableObject>::iterator object_iter;
-	for (object_iter = objects.begin(); object_iter != objects.end(); object_iter++)
-	{
-		for (int i = 0; i < object_iter->total_tetrahedra; ++i)
-		{
-			float Mx, My, Mz;//max
-			float mx, my, mz;//min
-			int n1 = object_iter->tetrahedra[i].indices[0];
-			int n2 = object_iter->tetrahedra[i].indices[1];
-			int n3 = object_iter->tetrahedra[i].indices[2];
-			int n4 = object_iter->tetrahedra[i].indices[3];
-			glm::vec3 v0 = object_iter->X[n1];
-			glm::vec3 v1 = object_iter->X[n2];
-			glm::vec3 v2 = object_iter->X[n3];
-			glm::vec3 v3 = object_iter->X[n4];
-
-			mx = glm::min(v0.x, v1.x);
-			mx = glm::min(mx, v2.x);
-			mx = glm::min(mx, v3.x);
-			my = glm::min(v0.y, v1.y);
-			my = glm::min(my, v2.y);
-			my = glm::min(my, v3.y);
-			mz = glm::min(v0.z, v1.z);
-			mz = glm::min(mz, v2.z);
-			mz = glm::min(mz, v3.z);
-			Mx = glm::max(v0.x, v1.x);
-			Mx = glm::max(Mx, v2.x);
-			Mx = glm::max(Mx, v3.x);
-			My = glm::max(v0.y, v1.y);
-			My = glm::max(My, v2.y);
-			My = glm::max(My, v3.y);
-			Mz = glm::max(v0.z, v1.z);
-			Mz = glm::max(Mz, v2.z);
-			Mz = glm::max(Mz, v3.z);
-
-			int m_x = int(mx / l);
-			int m_y = int(my / l);
-			int m_z = int(mz / l);
-			int M_x = int(Mx / l) + 1;
-			int M_y = int(My / l) + 1;
-			int M_z = int(Mz / l) + 1;
-
-			for (int j = m_x; j < M_x; ++j)
-				for (int k = m_y; k < M_y; ++k)
-					for (int l = m_z; l < M_z; ++l)
-					{
-				         int h = ((j * p1) ^ (k * p2) ^ (l * p3)) % n;
-						 if (H.cell[h].T == H.T)
-						 {
-							 list<node> ::iterator node_iter;
-							 for (node_iter = H.cell[h].nodes.begin(); node_iter != H.cell[h].nodes.end(); node_iter++)
-							 {
-								 if (node_iter->objID == objId && ((node_iter->index == n1) || (node_iter->index == n2) || (node_iter->index == n3) || (node_iter->index == n4)))
-									 break;
-								 glm::mat3 A;
-								 glm::vec3 e1, e2, e3;
-								 e1 = v1 - v0;
-								 e2 = v2 - v0;
-								 e3 = v3 - v0;
-								 A[0][0] = e1.x;    A[1][0] = e2.x;    A[2][0] = e3.x;
-								 A[0][1] = e1.y;    A[1][1] = e2.y;    A[2][1] = e3.y;
-								 A[0][2] = e1.z;    A[1][2] = e2.z;    A[2][2] = e3.z;
-
-								 A = glm::inverse(A);
-
-								 glm::vec3 beta = node_iter->position - v0;
-								 beta = A * beta;
-
-								 if (beta.x >= 0 && beta.y >= 0 && beta.z >= 0 && (beta.x + beta.y + beta.z) <= 1)
-									 ;//contact(n,t)
-							 }
-						 }
-					}
-		}
-	}
-}
-
-void spatialHashing(double T, HashMap H, vector<DeformableObject> objects)
-{
-	H.T = T;
-	firstPass(H, objects);
-	secondPass(H, objects);
-}
+float g_l = 0;//global grid size
+int n = 199;//hash table size
+float a = 9.81;//penalty coefficient
+HashMap g_HashTable(n);
+vector<DeformableObject> g_models;
 
 class FEMTest : public App
 {
@@ -278,12 +170,14 @@ private:
 	void                    buildGeometryBuffers();
 	void                    buildShader();
 	void                    setGridCellSize();
+	void firstPass(HashMap H, vector<DeformableObject> *g_models);
+	void secondPass(HashMap H, vector<DeformableObject> *g_models);
 private:
 
 	GameTimer                timer;
-	vector<DeformableObject> models;
 	DeformableObject         bunny;
 	DeformableObject         bunny2;
+	HashMap                  HashTable;
 };
 
 int main(void)
@@ -297,10 +191,10 @@ int main(void)
 	return 0;
 }
 
-FEMTest::FEMTest() : App(), timer(), bunny(), bunny2()
+FEMTest::FEMTest() : App(), timer(), HashTable(n), bunny(0.0f, 0.30f, 0.0f, false), bunny2(0.0f, 0.0f, 0.0f, true)
 {
-	models.push_back(bunny);
-	models.push_back(bunny2);
+	//g_models.push_back(bunny);
+	g_models.push_back(bunny2);
 	mWidth = width;
 	mHeight = height;
 }
@@ -330,11 +224,14 @@ bool FEMTest::Init()
 
 	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glPointSize(2);
+	glPointSize(2); 
 	wglSwapIntervalEXT(0);
 
-
 	onResize(window, width, height);
+
+	setGridCellSize();
+
+	return true;
 }
 
 void FEMTest::onResize(GLFWwindow* window, int nw, int nh)
@@ -356,7 +253,32 @@ void FEMTest::UpdateScene()
 {
 	if (accumulator >= timeStep)
 	{
-		bunny.StepPhysics(timeStep);
+		HashTable.T = timer.TotalTime();
+		
+		//debug << HashTable.T << endl;
+		for (int i = 0; i < g_models.size(); ++i)
+		{
+			g_models[i].DistanceFildAndGradientFild();
+			g_models[i].VetexDistanceAndGradient();
+		}
+		for (int i = 0; i < g_models.size(); ++i)
+		{
+			//g_models[i].firstPass(&HashTable, i);
+		}
+		
+		for (int i = 0; i < g_models.size(); ++i)
+		{
+			///g_models[i].secondPass(&HashTable, i);
+		}
+
+		//firstPass(HashTable, g_models);
+		//secondPass(HashTable, g_models);
+
+		for (int i = 0; i < g_models.size(); ++i)
+		{
+            g_models[i].StepPhysics(timeStep);
+		}
+			
 		accumulator -= timeStep;
 	}
 }
@@ -406,13 +328,58 @@ void FEMTest::Rendering()
 
 	//draw grid
 	DrawGrid();
-	bunny.renderModel();
+	glMatrixMode(GL_MODELVIEW);
+	glScaled(2.0f, 2.0f, 2.0f);
 
+	for (int i = 0; i < g_models.size(); ++i)
+		g_models[i].renderModel();
+	glBegin(GL_LINES);
+	for (int i = 0; i < g_models[0].total_points; ++i)
+	{
+		glm::vec3 p1, p2;
+		p1 = g_models[0].X[i];
+		p2 = g_models[0].gradientV[i];
+		//p2 = glm::normalize(p2);
+		p2 = p1 + p2;	
+		glVertex3f(p1.x, p1.y, p1.z);
+		glVertex3f(p2.x, p2.y, p2.z);
+	}
+	glEnd();
+	/*
+		glColor3f(0.75, 0.75, 0.75);
+		{
+		glBegin(GL_LINES);
+
+		glm::vec3 p1 = glm::vec3(-0.0158555,   0.149626, - 0.0252782);
+		glm::vec3 p2 = glm::vec3(-0.0208207,   0.141843, - 0.0189655);
+		glm::vec3 p3 = glm::vec3(-0.0289981,   0.135866, - 0.0183379);
+		glm::vec3 p4 = glm::vec3(-0.0131466,   0.140465, - 0.0290179);
+
+			glVertex3f(p4.x, p4.y, p4.z);		glVertex3f(p1.x, p1.y, p1.z);
+			glVertex3f(p4.x, p4.y, p4.z);		glVertex3f(p2.x, p2.y, p2.z);
+			glVertex3f(p4.x, p4.y, p4.z);		glVertex3f(p3.x, p3.y, p3.z);
+
+			glVertex3f(p1.x, p1.y, p1.z);		glVertex3f(p2.x, p2.y, p2.z);
+			glVertex3f(p1.x, p1.y, p1.z);		glVertex3f(p3.x, p3.y, p3.z);
+
+			glVertex3f(p2.x, p2.y, p2.z);		glVertex3f(p3.x, p3.y, p3.z);
+		glEnd();
+}
+
+		//draw points	
+		glBegin(GL_POINTS);
+		glm::vec3 p = glm::vec3(-0.0240009,   0.139007, - 0.0211086);
+			glColor3f(1.0f, 1.0f, 0.0f);
+			glVertex3f(p.x, p.y, p.z);
+
+		glEnd();
+*/
 }
 void FEMTest::onMouseWheel(GLFWwindow* window, double x, double y)
 {
 	float mouseWheelScale = 0.3f;
 	scale += mouseWheelScale  * (float)y;
+	if (scale < 0) scale = 0;
 }
 void FEMTest::onMouseMove(GLFWwindow* window, double xd, double yd)
 {
@@ -503,8 +470,10 @@ void FEMTest::onKey(GLFWwindow* window, int key, int scancode, int action, int m
 	App::onKey(window, key, scancode, action, mods);
 	if ((key == GLFW_KEY_SPACE) && (action == GLFW_PRESS))
 	{
-		bunny.bUseStiffnessWarping = !bunny.bUseStiffnessWarping;
-		printf("Stiffness Warping %s\n", bunny.bUseStiffnessWarping ? "On" : "Off");
+		//bunny.bUseStiffnessWarping = !bunny.bUseStiffnessWarping;
+		//printf("Stiffness Warping %s\n", bunny.bUseStiffnessWarping ? "On" : "Off");
+		for (int i = 0; i < g_models.size(); ++i)
+			g_models[i].Reset();
 	}
 
 }
@@ -521,10 +490,159 @@ void FEMTest::setGridCellSize()
 	double length = 0;
 	double tn = 0;
 	vector<DeformableObject>::iterator object_iter;
-	for (object_iter = models.begin(); object_iter != models.end(); object_iter++)
+	for (object_iter = g_models.begin(); object_iter != g_models.end(); object_iter++)
 	{
 		length += object_iter->totalLength;
 		tn += object_iter->total_tetrahedra;
 	}
-	l = length / (6 * tn);
+	g_l = length / (6 * tn);
+}
+
+void FEMTest::firstPass(HashMap H, vector<DeformableObject> *g_models)
+{
+
+	for (int i = 0; i < g_models->size(); ++i)
+	{
+		DeformableObject *ob = &((*g_models)[i]);
+		for (int j = 0; j < (*g_models)[i].total_points; ++j)
+		{
+			glm::vec3 p = ob->X[j];
+			int x = (int)(p.x / g_l);
+			int y = (int)(p.y / g_l);
+			int z = (int)(p.z / g_l);
+			int h = ((x * p1) ^ (y * p2) ^ (z * p3)) % n;
+			if (h < 0) h = -h;
+			//cout << l << endl;
+			debug << p.x << " " << p.y << " " << p.z << endl;
+			//cout << x << " "<< y <<  " "<< z << endl;
+			//debug << h << endl;
+			if (H.cell[h].T != H.T)
+			{
+				H.cell[h].nodes.clear();
+				H.cell[h].T = H.T;
+			}
+			Vertex v;
+			v.objId = i;
+			v.localIndex = j;
+			v.p = p;
+			H.cell[h].nodes.push_back(v);
+		}
+	}
+}
+void FEMTest::secondPass(HashMap H, vector<DeformableObject> *g_models)
+{
+	for (int mi = 0; mi < g_models->size(); ++mi)
+	{
+		DeformableObject *ob = &((*g_models)[mi]);
+		for (int i = 0; i != ob->total_tetrahedra; ++i)
+		{
+			float Mx, My, Mz;//max
+			float mx, my, mz;//min
+			int n1 = ob->tetrahedra[i].indices[0];
+			int n2 = ob->tetrahedra[i].indices[1];
+			int n3 = ob->tetrahedra[i].indices[2];
+			int n4 = ob->tetrahedra[i].indices[3];
+			glm::vec3 v0 = ob->X[n1];
+			glm::vec3 v1 = ob->X[n2];
+			glm::vec3 v2 = ob->X[n3];
+			glm::vec3 v3 = ob->X[n4];
+
+			mx = glm::min(v0.x, v1.x);
+			mx = glm::min(mx, v2.x);
+			mx = glm::min(mx, v3.x);
+			my = glm::min(v0.y, v1.y);
+			my = glm::min(my, v2.y);
+			my = glm::min(my, v3.y);
+			mz = glm::min(v0.z, v1.z);
+			mz = glm::min(mz, v2.z);
+			mz = glm::min(mz, v3.z);
+			Mx = glm::max(v0.x, v1.x);
+			Mx = glm::max(Mx, v2.x);
+			Mx = glm::max(Mx, v3.x);
+			My = glm::max(v0.y, v1.y);
+			My = glm::max(My, v2.y);
+			My = glm::max(My, v3.y);
+			Mz = glm::max(v0.z, v1.z);
+			Mz = glm::max(Mz, v2.z);
+			Mz = glm::max(Mz, v3.z);
+
+			int m_x = int(mx / g_l);
+			int m_y = int(my / g_l);
+			int m_z = int(mz / g_l);
+			int M_x = int(Mx / g_l) + 1;
+			int M_y = int(My / g_l) + 1;
+			int M_z = int(Mz / g_l) + 1;
+
+			for (int j = m_x; j < M_x; ++j)
+				for (int k = m_y; k < M_y; ++k)
+					for (int l = m_z; l < M_z; ++l)
+					{
+				int h = ((j * p1) ^ (k * p2) ^ (l * p3)) % n;
+				if (h < 0) h = -h;
+				if (H.cell[h].T == H.T)
+				{
+					list<Vertex> ::iterator node_iter;
+					for (node_iter = H.cell[h].nodes.begin(); node_iter != H.cell[h].nodes.end(); node_iter++)
+					{
+						if (node_iter->objId == mi && ((node_iter->localIndex == n1) || (node_iter->localIndex == n2) || (node_iter->localIndex == n3) || (node_iter->localIndex == n4)))
+							continue;
+						glm::mat3 A;
+						glm::vec3 e1, e2, e3;
+						e1 = v1 - v0;
+						e2 = v2 - v0;
+						e3 = v3 - v0;
+
+						A[0][0] = e1.x;    A[1][0] = e2.x;    A[2][0] = e3.x;//A = glm::inverse(A);
+						A[0][1] = e1.y;    A[1][1] = e2.y;    A[2][1] = e3.y;
+						A[0][2] = e1.z;    A[1][2] = e2.z;    A[2][2] = e3.z;
+
+						glm::vec3 beta = node_iter->p - v0;
+						beta = A * beta;
+
+						if (beta.x >= 0 && beta.y >= 0 && beta.z >= 0 && (beta.x + beta.y + beta.z) <= 1)
+						{//contact(n,t)
+							//ob->distanceV[n1];
+							//ob->distanceV[n2];
+							//ob->distanceV[n3];
+							//ob->distanceV[n4];
+							/*
+							glm::vec3 g0(0), g1(0), g2(0), g3(0);
+
+							float d = ob->distanceV[n1] * (1 - beta.x - beta.y - beta.z) + ob->distanceV[n2] * beta.x + ob->distanceV[n3] * beta.y + ob->distanceV[n4] * beta.z;
+
+							for (int numT = 0; numT < ob->tetrahedraOfVertices[n1].size(); ++numT)
+							{
+								int tetrahedraIndex = ob->tetrahedraOfVertices[n1][numT];
+								g0 += ob->tetrahedra[tetrahedraIndex].Re * ob->gradientV[n1];
+							}
+							for (int numT = 0; numT < ob->tetrahedraOfVertices[n2].size(); ++numT)
+							{
+								int tetrahedraIndex = ob->tetrahedraOfVertices[n2][numT];
+								g1 += ob->tetrahedra[tetrahedraIndex].Re * ob->gradientV[n2];
+							}
+							for (int numT = 0; numT < ob->tetrahedraOfVertices[n3].size(); ++numT)
+							{
+								int tetrahedraIndex = ob->tetrahedraOfVertices[n3][numT];
+								g2 += ob->tetrahedra[tetrahedraIndex].Re * ob->gradientV[n3];
+							}
+							for (int numT = 0; numT < ob->tetrahedraOfVertices[n4].size(); ++numT)
+							{
+								int tetrahedraIndex = ob->tetrahedraOfVertices[n4][numT];
+								g3 += ob->tetrahedra[tetrahedraIndex].Re * ob->gradientV[n4];
+							}
+							g0 = glm::normalize(g0);
+							g1 = glm::normalize(g1);
+							g2 = glm::normalize(g2);
+							g3 = glm::normalize(g3);
+							glm::vec3 g = g0 * (1 - beta.x - beta.y - beta.z) + g1 * beta.x + g2 * beta.y + g3 * beta.z;
+							glm::vec3 f = a * d * g;
+							ob->F[node_iter->localIndex] += f;
+							*/
+						}
+
+					}
+				}
+					}
+		}
+	}
 }

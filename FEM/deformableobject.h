@@ -1,9 +1,14 @@
 #include <App.h>
 #include <vector>
 #include <map>
-
+#include "hash.h"
 #define EPSILON 0.001f
 #define EPS2  EPSILON*EPSILON
+
+struct BoundaryTriangle
+{
+	int indices[3];
+};
 
 struct Tetrahedron {
 	int indices[4];			//indices
@@ -24,6 +29,16 @@ class DeformableObject
 {
 public:
 	vector<Tetrahedron> tetrahedra;
+	vector<BoundaryTriangle> bTriangle;
+	vector<float> distanceFild;
+	vector<glm::vec3> gradientFild;
+	vector<float> distanceV;
+	vector<glm::vec3> gradientV;
+	vector<vector<int>> tetrahedraOfVertices;
+	float totalLength = 0;
+	float ABmx, ABmy, ABmz;
+	float l;//local grid size
+	int gi, gj, gk;
 
 	float nu = 0.33f;			//Poisson ratio
 	float Y = 500000.0f;		//Young modulus
@@ -47,10 +62,11 @@ public:
 	const int GRID_SIZE = 5;
 
 
-	glm::vec3 gravity = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 gravity = glm::vec3(0.0f, -9.81f, 0.0f);
 
 	size_t total_points = 0;
 	int total_tetrahedra = 0;
+	int total_btriangle = 0;
 	int selected_index = -1;//////
 
 	vector<glm::vec3> Xi;		//Model coordinates
@@ -79,15 +95,25 @@ public:
 	bool bUseStiffnessWarping = true;
 
 
-	double totalLength = 0;
+	
 
 public:
 	DeformableObject();
 	~DeformableObject();
-
+	DeformableObject(float x, float y, float z, bool ifFixed);
+	DeformableObject(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth);
 
 	float GetTetraVolume(glm::vec3 e1, glm::vec3 e2, glm::vec3 e3) {
 		return  (glm::dot(e1, glm::cross(e2, e3))) / 6.0f;
+	}
+	void AddBTriangle(int i0, int i1, int i2)
+	{
+		BoundaryTriangle t;
+		t.indices[0] = i0;
+		t.indices[1] = i1;
+		t.indices[2] = i2;
+
+		bTriangle.push_back(t);
 	}
 	void AddTetrahedron(int i0, int i1, int i2, int i3) {
 		Tetrahedron t;
@@ -105,7 +131,7 @@ public:
 	int GetSelectIndex(){ return selected_index; };
 
 	void CalculateK();
-	void ReadModelFromFile(const char*name);
+	void ReadModelFromFile(float x, float y, float z, bool ifFixed, const char*name);
 	void ClearStiffnessAssembly();
 	void RecalcMassMatrix();
 	void InitializePlastic();
@@ -124,4 +150,14 @@ public:
 	void StepPhysics(float dt);
 
 	void renderModel();
+
+	void                    DistanceFildAndGradientFild();
+	float                   minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle);
+	float                   DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt);
+	void                    VetexDistanceAndGradient();
+	void                    InterpolateDistanceGradient(int i, glm::vec3 *g, float *d);
+	void                    GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth);
+	void                    Reset();
+	void                    firstPass(HashMap *h, int objId);
+	void                    secondPass(HashMap *h, int objId);
 };

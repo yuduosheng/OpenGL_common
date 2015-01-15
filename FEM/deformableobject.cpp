@@ -1,5 +1,8 @@
 #include "deformableobject.h"
-
+ofstream debug2("debug2.txt");
+extern ofstream debug;
+extern vector<DeformableObject> g_models;
+extern float g_l;//global grid size
 DeformableObject::DeformableObject()
 {
     d15 = Y / (1.0f + nu) / (1.0f - 2 * nu);
@@ -9,7 +12,90 @@ DeformableObject::DeformableObject()
 
 	D = glm::vec3(d16, d17, d18); //Isotropic elasticity matrix D
 
-	ReadModelFromFile("bunny.1");
+	//ReadModelFromFile("bunny.1");
+	ReadModelFromFile(0.0f, 0.0f, 0.0f, false, "bunny_300.1");
+	
+	total_tetrahedra = tetrahedra.size();
+
+	total_points = X.size();
+	mass.resize(total_points);
+
+	//copy positions to buffer 
+	A_row.resize(total_points);
+	K_row.resize(total_points);
+	b.resize(total_points);
+	V.resize(total_points);
+	F.resize(total_points);
+	F0.resize(total_points);
+	residual.resize(total_points);
+	update.resize(total_points);
+	prev_1.resize(total_points);
+
+	//fill in V
+	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
+
+
+	CalculateK();
+	ClearStiffnessAssembly();
+	RecalcMassMatrix();
+	InitializePlastic();
+	//distance file and gradient fild
+	//DistanceFildAndGradientFild();
+	//VetexDistanceAndGradient();
+	l = totalLength / (total_tetrahedra * 6);
+}
+DeformableObject::DeformableObject(float x, float y, float z, bool ifFixed)
+{
+	d15 = Y / (1.0f + nu) / (1.0f - 2 * nu);
+	d16 = (1.0f - nu) * d15;
+	d17 = nu * d15;
+	d18 = Y / 2 / (1.0f + nu);
+
+	D = glm::vec3(d16, d17, d18); //Isotropic elasticity matrix D
+
+	ReadModelFromFile(x, y, z, ifFixed, "bunny_300.1");
+
+	total_tetrahedra = tetrahedra.size();
+
+	total_points = X.size();
+	mass.resize(total_points);
+
+	//copy positions to buffer 
+	A_row.resize(total_points);
+	K_row.resize(total_points);
+	b.resize(total_points);
+	V.resize(total_points);
+	F.resize(total_points);
+	F0.resize(total_points);
+	residual.resize(total_points);
+	update.resize(total_points);
+	prev_1.resize(total_points);
+
+	//fill in V
+	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
+
+
+	CalculateK();
+	ClearStiffnessAssembly();
+	RecalcMassMatrix();
+	InitializePlastic();
+	//distance file and gradient fild
+	//DistanceFildAndGradientFild();
+	//VetexDistanceAndGradient();
+	l = totalLength / (total_tetrahedra * 6);
+}
+DeformableObject::DeformableObject(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth)
+{
+	d15 = Y / (1.0f + nu) / (1.0f - 2 * nu);
+	d16 = (1.0f - nu) * d15;
+	d17 = nu * d15;
+	d18 = Y / 2 / (1.0f + nu);
+
+	D = glm::vec3(d16, d17, d18); //Isotropic elasticity matrix D
+
+	//ReadModelFromFile("bunny.1");
+	GenerateBlocks(xdim, ydim, zdim,  width, height, depth);
+
 	total_tetrahedra = tetrahedra.size();
 
 	total_points = X.size();
@@ -33,6 +119,9 @@ DeformableObject::DeformableObject()
 	ClearStiffnessAssembly();
 	RecalcMassMatrix();
 	InitializePlastic();
+	//distance file and gradient fild
+	DistanceFildAndGradientFild();
+	VetexDistanceAndGradient();
 }
 DeformableObject::~DeformableObject()
 {
@@ -41,7 +130,7 @@ DeformableObject::~DeformableObject()
 
 void DeformableObject::CalculateK() {
 
-	for (size_t k = 0; k<tetrahedra.size(); k++) {
+	for (size_t k = 0; k < tetrahedra.size(); k++) {
 
 		glm::vec3 x0 = Xi[tetrahedra[k].indices[0]];
 		glm::vec3 x1 = Xi[tetrahedra[k].indices[1]];
@@ -134,11 +223,12 @@ void DeformableObject::CalculateK() {
 		}
 	}
 }
-void DeformableObject::ReadModelFromFile(const char *filename)
+void DeformableObject::ReadModelFromFile(float x, float y, float z, bool ifFixed, const char *filename)
 {
 	string fileName = filename;
 	string suffix = ".node";
 	string suffix2 = ".ele";
+	string suffix3 = ".face";
 	fileName += suffix;
 	ifstream nodeFile(fileName.c_str(), ios::in);
 	if (!nodeFile.is_open())
@@ -151,22 +241,29 @@ void DeformableObject::ReadModelFromFile(const char *filename)
 	X.resize(total_points);
 	Xi.resize(total_points);
 	IsFixed.resize(total_points);
+	tetrahedraOfVertices.resize(total_points);
 	int noUse;
 	nodeFile >> noUse >> noUse >> noUse;
-	int ind = 0;
+
 	glm::vec3 nodePosition;
+	float miny = 10;
 	for (int i = 0; i < total_points; ++i)
 	{
 		nodeFile >> noUse;
 		nodeFile >> nodePosition.x >> nodePosition.y >> nodePosition.z;
 		//debug << nodePosition.x << " " << nodePosition.y << " " << nodePosition.z << endl;
+		nodePosition.x += x;
+		nodePosition.y += y;
+		nodePosition.z += z;
 		X[i] = nodePosition;
 		Xi[i] = X[i];
 		//Make the first few points fixed
-		if (Xi[i].y < 0.05)
+
+		if (ifFixed)
+		if (Xi[i].y < 0.04)
 		{
+			miny = glm::min(miny, Xi[i].y);
 			IsFixed[i] = true;
-			ind = i;
 		}
 		else
 		{
@@ -174,11 +271,13 @@ void DeformableObject::ReadModelFromFile(const char *filename)
 		}
 	}
 	//move to floor
-	float k = X[ind].y;
-	for (size_t i = 0; i<total_points; i++) {
-		X[i].y -= k;
-	}
+	//float k = X[ind].y;
 
+	if (ifFixed)
+	for (size_t i = 0; i<total_points; i++) {
+		X[i].y -= miny;
+		Xi[i].y = X[i].y;
+	}
 	nodeFile.close();
 
 	fileName = filename;
@@ -199,10 +298,53 @@ void DeformableObject::ReadModelFromFile(const char *filename)
 		int p0, p1, p2, p3;
 		eleFile >> noUse;
 		eleFile >> p0 >> p1 >> p2 >> p3;
+		tetrahedraOfVertices[p0].push_back(i);
+		tetrahedraOfVertices[p1].push_back(i);
+		tetrahedraOfVertices[p2].push_back(i);
+		tetrahedraOfVertices[p3].push_back(i);
 		//debug << p0 << " " << p1 << " " << p2 << " " << p3 <<endl;
 		AddTetrahedron(p0, p1, p2, p3);
 	}
 	eleFile.close();
+
+
+	fileName = filename;
+	fileName += suffix3;
+
+	distanceV.resize(total_points);
+	gradientV.resize(total_points);
+	for (int i = 0; i < total_points; ++i)
+	{
+		distanceV[i] = 1;
+	}
+
+	ifstream faceFile(fileName.c_str(), ios::in);
+	if (!faceFile.is_open())
+	{
+	cout << fileName << " open fail." << endl;
+	return;
+	}
+	faceFile >> total_btriangle;
+	faceFile >> noUse;
+	for (int i = 0; i < total_tetrahedra; ++i)
+	{
+		int p0, p1, p2;
+		faceFile >> noUse;
+		faceFile >> p0 >> p1 >> p2;
+		distanceV[p0] = 0;
+		distanceV[p1] = 0;
+		distanceV[p2] = 0;
+		AddBTriangle(p0, p1, p2);
+	}
+	/*
+	for (int i = 0; i < total_btriangle; ++i)
+	{
+		debug << bTriangle[i].indices[0] << " ";
+		debug << bTriangle[i].indices[1] << " ";
+		debug << bTriangle[i].indices[2] << " ";
+		debug << endl;
+	}*/
+	faceFile.close();
 }
 
 
@@ -259,16 +401,6 @@ void DeformableObject::OnShutdown() {
 	residual.clear();
 	prev_1.clear();
 	update.clear();
-}
-
-void DeformableObject::ComputeForces() {
-	size_t i = 0;
-	for (i = 0; i<total_points; i++) {
-		F[i] = glm::vec3(0);
-
-		//add gravity force only for non-fixed points
-		F[i] += gravity*mass[i];
-	}
 }
 
 
@@ -618,17 +750,34 @@ void DeformableObject::UpdatePosition(float dt) {
 	}
 }
 
+void DeformableObject::ComputeForces() {
+	size_t i = 0;
+	for (i = 0; i<total_points; i++) {
+		//F[i] = glm::vec3(0);
+
+		//add gravity force only for non-fixed points
+		F[i] = gravity*mass[i];
+	}
+
+}
 void DeformableObject::GroundCollision()
 {
 	for (size_t i = 0; i<total_points; i++) {
-		if (X[i].y<0) //collision with ground
-			X[i].y = 0;
+		if (X[i].y < 0) //collision with ground
+		{
+			glm::vec3 f;
+			f = glm::vec3(0.0f, -1000.0f, 0.0f) * X[i].y;
+			F[i] += f;
+			//X[i].y = 0;
+		}
 	}
 }
 
 void DeformableObject::StepPhysics(float dt) {
 
 	ComputeForces();
+
+	GroundCollision();
 
 	ClearStiffnessAssembly();
 
@@ -648,7 +797,7 @@ void DeformableObject::StepPhysics(float dt) {
 
 	UpdatePosition(dt);
 
-	GroundCollision();
+	//GroundCollision();
 }
 
 void DeformableObject::renderModel()
@@ -687,4 +836,580 @@ void DeformableObject::renderModel()
 		glVertex3f(p.x, p.y, p.z);
 	}
 	glEnd();
+}
+
+void DeformableObject::DistanceFildAndGradientFild()
+{
+	float mx, my, mz, Mx, My, Mz;
+	mx = X[0].x;   Mx = X[0].x;
+	my = X[0].y;   My = X[0].y;
+	mz = X[0].z;   Mz = X[0].z;
+	for (int i = 1; i < total_points; ++i)
+	{
+		mx = glm::min(X[i].x, mx);
+		my = glm::min(X[i].y, my);
+		mz = glm::min(X[i].z, mz);
+		Mx = glm::max(X[i].x, Mx);
+		My = glm::max(X[i].y, My);
+		Mz = glm::max(X[i].z, Mz);
+	}
+	//debug << mx << " " << my << " " << mz << " " << Mx << " " << My << " " << Mz << endl;
+	mx -= l;
+	my -= l;
+	mz -= l;
+
+	ABmx = mx;
+	ABmy = my;
+	ABmz = mz;
+
+	Mx += l;
+	My += l;
+	Mz += l;
+
+	//debug << mx << " " << my << " " << mz << " " << Mx << " " << My << " " << Mz << endl;
+	float li = Mx - mx;
+	float lj = My - my;
+	float lk = Mz - mz;
+	int xi = li / l + 1;
+	int yj = lj / l + 1;
+	int zk = lk / l + 1;
+	gi = xi;
+	gj = yj;
+	gk = zk;
+	//debug << l << " " << gi << " " << gj << " " << gk << endl;
+
+	vector<glm::vec3> grid;
+	grid.resize(xi*yj*zk);
+	distanceFild.resize(xi*yj*zk);
+	gradientFild.resize(xi*yj*zk);
+
+	for (int i = 0; i < xi; ++i)
+		for (int j = 0; j < yj; ++j)
+			for (int k = 0; k < zk; ++k)
+			{
+		int index = i * yj * zk + j * zk + k;
+		grid[index] = glm::vec3(mx + (i * l), my + (j * l), mz + (k * l));
+		distanceFild[index] = minDistanceBetweenVetexAndTriangle(grid[index], &bTriangle);
+		//debug << distanceFild[index] << endl;
+			}
+	//debug << "distanceFild over." << endl;
+
+	for (int i = 1; i < xi - 1; ++i)
+		for (int j = 1; j < yj - 1; ++j)
+			for (int k = 1; k < zk - 1; ++k)
+			{
+		int di = i * yj * zk;
+		int dj = j * zk;
+		int dk = k;
+		int dip1 = di + yj * zk;
+		int di_1 = di - yj * zk;
+		int djp1 = dj + zk;
+		int dj_1 = dj - zk;
+		int dkp1 = dk + k;
+		int dk_1 = dk - k;
+		gradientFild[di + dj + dk] = glm::vec3(
+			distanceFild[dip1 + dj + dk] - distanceFild[di_1 + dj + dk], 
+			distanceFild[di + djp1 + dk] - distanceFild[di_1 + dj_1 + dk], 
+			distanceFild[di + dj + dkp1] - distanceFild[di + dj + dk_1]);
+			}
+}
+float DeformableObject::minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle)
+{
+	float distance = 100000;
+	for (int i = 0; i < total_btriangle; ++i)
+	{
+		float d = DistanceBetweenVT(v, (*bTriangle)[i]);
+		distance = glm::min(distance, d);
+	}
+	return distance;
+}
+float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
+{//geometric tools for computer graphics p.275
+	glm::vec3 v0, v1, v2, dv;
+	float a, b, c, d, e, f;
+	v0 = X[bt.indices[0]];
+	v1 = X[bt.indices[1]];
+	v2 = X[bt.indices[2]];
+	v1 = v1 - v0;//e0
+	v2 = v2 - v0;//e1
+	dv = v0 - v;
+
+	a = glm::dot(v1, v1);
+	b = glm::dot(v1, v2);
+	c = glm::dot(v2, v2);
+	d = glm::dot(v1, dv);
+	e = glm::dot(v2, dv);
+	f = glm::dot(dv, dv);
+
+	float det, s, t;
+	det = a * c - b * b;
+	s = b * e - c * d;
+	t = b * d - a * e;
+
+	if (s >= 0 && s <= det && t >= 0 && t <= det && (s + t) <= det)//p` in the triangle.
+	{
+		float invDet = 1 / det;
+		s *= invDet;
+		t *= invDet;
+		return sqrt(a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f);
+	}
+	else
+		if ((s + t) <= det)
+	    {
+		if (s < 0)
+		{
+			if (t < 0)
+			{//region 4
+				if (d > 0)
+				{//on t = 0;
+					t = 0;
+					s = (d >= 0 ? 0 : (-d >= a ? 1 : -d / a));
+					return sqrt(a*s*s + 2 * d*s + f);
+				}
+				else
+				{
+					s = 0;
+					t = (e >= 0 ? 0 : (-e >= c ? 1 : -e / c));
+					return sqrt(c*t*t + 2 * e*t + f);
+				}
+			}
+			else
+			{//region 3
+				s = 0;
+				t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
+				return sqrt(c*t*t + 2 * e*t + f);
+			}
+		}
+		else
+		{//region 5
+			t = 0;
+			s = (d >= 0 ? 0 : (-d >= a ? 1 : -d/a));
+			return sqrt(a*s*s + 2 * d*s + 2 * e*t + f);
+		}
+	    }
+		else
+		{
+			if (s < 0)
+			{//region 2
+				float tmp0 = b + d;
+				float tmp1 = c + e;
+				if (tmp1 > tmp0)
+				{//min on edge s + t = 1
+					float numer = tmp1 - tmp0;
+					float denom = a - 2 * b + c;
+					s = (numer >= denom ? 1 : numer/denom);
+					t = 1 - s;
+					return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
+				}
+				else
+				{
+					s = 0;
+					t = (tmp1 < 0 ? 1 : (e >= 0 ? 0 : -e/c));
+					return sqrt(c*t*t + 2 * e*t + f);
+				}
+			}
+			else if (t < 0)
+			{//region 6
+				float tmp0 = b + e;
+				float tmp1 = a + d;
+				if (tmp1 > tmp0)
+				{//min on edge s + t = 1
+					float numer = c + e - b - d;
+					float denom = a - 2 * b + c;
+					s = (numer >= denom ? 1 : numer / denom);
+					t = 1 - s;
+					return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
+				}
+				else
+				{// or on 
+					t = 0;
+					s = (tmp1 < 0 ? 1 : (d >= 0 ? 0 : -d / a));
+					return sqrt(a*s*s + 2 * d*s + f);
+				}
+			}
+			else
+			{//region 1
+				float numer = c + d - b - d;
+				if (numer <= 0)
+				{
+					s = 0;
+				}
+				else
+				{
+					float denom = a - 2 * b + c;
+					s = (numer >= denom ? 1 : numer / denom);
+				}
+				t = 1 - s;
+
+				return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
+			}
+		}
+}
+void DeformableObject::VetexDistanceAndGradient()
+{
+	for (int i = 0; i < total_points; ++i)
+	{
+		InterpolateDistanceGradient(i, &gradientV[i], &distanceV[i]);
+	}
+}
+void DeformableObject::InterpolateDistanceGradient(int ind, glm::vec3 *g, float *d)
+{
+	float li, lj, lk;
+	li = X[ind].x - ABmx;
+	lj = X[ind].y - ABmy;
+	lk = X[ind].z - ABmz;
+	int i, j, k;
+	i = li / l;
+	j = lj / l;
+	k = lk / l;
+
+	glm::vec3 a;
+	glm::vec3 ga, gb, gc, gd, ge, gf, gg, gh;
+	float da, db, dc, dd, de, df, dg, dh;
+	a = glm::vec3(ABmx + i * l, ABmy + j * l, ABmz + k * l);
+	//b = glm::vec3(ABmx + i * l + l, ABmy + j * l, ABmz + k * l);
+	//c = glm::vec3(ABmx + i * l + l, ABmy + j * l, ABmz + k * l + l);
+	//d = glm::vec3(ABmx + i * l, ABmy + j * l, ABmz + k * l + l);
+
+	//e = glm::vec3(ABmx + i * l, ABmy + j * l + l, ABmz + k * l);
+	//f = glm::vec3(ABmx + i * l + l, ABmy + j * l + l, ABmz + k * l);
+	//g = glm::vec3(ABmx + i * l + l, ABmy + j * l + l, ABmz + k * l + l);
+	//h = glm::vec3(ABmx + i * l, ABmy + j * l + l, ABmz + k * l + l);
+
+	ga = gradientFild[i * gj * gk + j * gk + k];
+	gb = gradientFild[(i + 1) * gj * gk + j * gk + k];
+	gc = gradientFild[(i + 1) * gj * gk + j * gk + k + 1];
+	gd = gradientFild[i * gj * gk + j * gk + k + 1];
+
+	ge = gradientFild[i * gj * gk + (j+1) * gk + k];
+	gf = gradientFild[(i + 1) * gj * gk + (j + 1) * gk + k];
+	gg = gradientFild[(i + 1) * gj * gk + (j + 1) * gk + k + 1];
+	gh = gradientFild[i * gj * gk + (j + 1) * gk + k + 1];
+
+	da = distanceFild[i * gj * gk + j * gk + k];
+	db = distanceFild[(i + 1) * gj * gk + j * gk + k];
+	dc = distanceFild[(i + 1) * gj * gk + j * gk + k + 1];
+	dd = distanceFild[i * gj * gk + j * gk + k + 1];
+
+	de = distanceFild[i * gj * gk + (j + 1) * gk + k];
+	df = distanceFild[(i + 1) * gj * gk + (j + 1) * gk + k];
+	dg = distanceFild[(i + 1) * gj * gk + (j + 1) * gk + k + 1];
+	dh = distanceFild[i * gj * gk + (j + 1) * gk + k + 1];
+	//interpolation in a b c d(i,k)
+	float factori = (X[ind].x - a.x) / l;
+	float factork = (X[ind].z - a.z) / l;
+	float factorj = (X[ind].y - a.y) / l;
+
+	glm::vec3 gabcd = (ga * (1 - factori) + gb * factori) * (1 - factork) + (gd * (1 - factori) + gc * factori) * factork;
+	glm::vec3 gefgh = (ge * (1 - factori) + gf * factori) * (1 - factork) + (gg * (1 - factori) + gh * factori) * factork;
+
+	float dabcd = (da * (1 - factori) + db * factori) * (1 - factork) + (dd * (1 - factori) + dc * factori) * factork;
+	float defgh = (de * (1 - factori) + df * factori) * (1 - factork) + (dg * (1 - factori) + dh * factori) * factork;
+	//debug << abcd.x << " " << abcd.y << " " << abcd.z << " " << endl;
+	//debug << efgh.x << " " << efgh.y << " " << efgh.z << " " << endl;
+
+	*g = gabcd * (1 - factorj) + gefgh * factorj;
+	*d = dabcd * (1 - factorj) + defgh * factorj;
+}
+
+void DeformableObject::GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth) {
+	total_points = (xdim + 1)*(ydim + 1)*(zdim + 1);
+	X.resize(total_points);
+	Xi.resize(total_points);
+	IsFixed.resize(total_points);
+	distanceV.resize(total_points);
+	gradientV.resize(total_points);
+
+	int ind = 0;
+	float hzdim = zdim / 2.0f;
+	for (size_t x = 0; x <= xdim; ++x) {
+		for (unsigned int y = 0; y <= ydim; ++y) {
+			for (unsigned int z = 0; z <= zdim; ++z) {
+				X[ind] = glm::vec3(width*x, height*z, depth*y);
+				Xi[ind] = X[ind];
+
+				//Make the first few points fixed
+				if (Xi[ind].x < 0.01)
+					IsFixed[ind] = true;
+
+				ind++;
+			}
+		}
+	}
+	//offset the tetrahedral mesh by 0.5 units on y axis
+	//and 0.5 of the depth in z axis
+	
+	for (size_t i = 0; i<total_points; i++) {
+		X[i].y += 0.5;
+		X[i].z -= hzdim*depth;
+	}
+    
+	for (size_t i = 0; i < xdim; ++i) {
+		for (size_t j = 0; j < ydim; ++j) {
+			for (size_t k = 0; k < zdim; ++k) {
+				int p0 = (i * (ydim + 1) + j) * (zdim + 1) + k;
+				int p1 = p0 + 1;
+				int p3 = ((i + 1) * (ydim + 1) + j) * (zdim + 1) + k;
+				int p2 = p3 + 1;
+				int p7 = ((i + 1) * (ydim + 1) + (j + 1)) * (zdim + 1) + k;
+				int p6 = p7 + 1;
+				int p4 = (i * (ydim + 1) + (j + 1)) * (zdim + 1) + k;
+				int p5 = p4 + 1;
+
+				// Ensure that neighboring tetras are sharing faces
+				if ((i + j + k) % 2 == 1) {
+					AddTetrahedron(p1, p2, p6, p3);
+					AddTetrahedron(p3, p6, p4, p7);
+					AddTetrahedron(p1, p4, p6, p5);
+					AddTetrahedron(p1, p3, p4, p0);
+					AddTetrahedron(p1, p6, p4, p3);
+				}
+				else {
+					AddTetrahedron(p2, p0, p5, p1);
+					AddTetrahedron(p2, p7, p0, p3);
+					AddTetrahedron(p2, p5, p7, p6);
+					AddTetrahedron(p0, p7, p5, p4);
+					AddTetrahedron(p2, p0, p7, p5);
+				}
+				total_tetrahedra += 5;
+			}
+		}
+	}
+
+}
+void DeformableObject::Reset()
+{
+	for (int i = 0; i < total_points; ++i)
+	{
+		X[i] = Xi[i];
+	}
+	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
+	debug << "Reset all." << endl;
+	//debug2 << "Reset all." << endl;
+}
+void DeformableObject::firstPass(HashMap *H, int objId)
+{
+	for (int j = 0; j < total_points; ++j)
+	{
+		glm::vec3 p = X[j];
+		int x = (int)(p.x / g_l);
+		int y = (int)(p.y / g_l);
+		int z = (int)(p.z / g_l);
+		int h = ((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) % 199;
+		if (h < 0) h = -h;
+		//cout << l << endl;
+		//debug << X[j].x << " " << X[j].y << " " << X[j].z << endl;
+		//debug << x << " "<< y <<  " "<< z << endl;
+		//debug << h<<"         ";
+
+		if (H->cell[h].T != H->T)
+		{
+			H->cell[h].nodes.clear();
+			H->cell[h].T = H->T;
+		}
+		Vertex v;
+		v.objId = objId;
+		v.localIndex = j;
+		v.p = p;
+		H->cell[h].nodes.push_back(v);
+	}
+}
+void DeformableObject::secondPass(HashMap *H, int objId)
+{//vector parameter  a vector is expensive;
+	//debug << "---------------------" << 2 << endl;
+
+	for (int i = 0; i < total_tetrahedra; ++i)
+	{
+		float Mx, My, Mz;//max
+		float mx, my, mz;//min
+		int n1 = tetrahedra[i].indices[0];
+		int n2 = tetrahedra[i].indices[1];
+		int n3 = tetrahedra[i].indices[2];
+		int n4 = tetrahedra[i].indices[3];
+		glm::vec3 v0 = X[n1];
+		glm::vec3 v1 = X[n2];
+		glm::vec3 v2 = X[n3];
+		glm::vec3 v3 = X[n4];
+
+		mx = glm::min(v0.x, v1.x);
+		mx = glm::min(mx, v2.x);
+		mx = glm::min(mx, v3.x);
+		my = glm::min(v0.y, v1.y);
+		my = glm::min(my, v2.y);
+		my = glm::min(my, v3.y);
+		mz = glm::min(v0.z, v1.z);
+		mz = glm::min(mz, v2.z);
+		mz = glm::min(mz, v3.z);
+		Mx = glm::max(v0.x, v1.x);
+		Mx = glm::max(Mx, v2.x);
+		Mx = glm::max(Mx, v3.x);
+		My = glm::max(v0.y, v1.y);
+		My = glm::max(My, v2.y);
+		My = glm::max(My, v3.y);
+		Mz = glm::max(v0.z, v1.z);
+		Mz = glm::max(Mz, v2.z);
+		Mz = glm::max(Mz, v3.z);
+
+        int M_x = Mx / g_l + 1;
+		int M_y = My / g_l + 1;
+		int M_z = Mz / g_l + 1;
+
+		int m_x = mx / g_l;
+		int m_y = my / g_l;
+		int m_z = mz / g_l;
+
+		
+		//debug << mx << " " << my << " " << mz << " " << Mx << " " << My << " " << Mz << "              ";
+		//debug << mx / g_l << " " << my / g_l << " " << mz / g_l << " " << Mx / g_l << " " << My / g_l << " " << Mz / g_l << "              ";
+		//debug << m_x << " " << m_y << " " << m_z << " " << M_x << " " << M_y << " " << M_z << endl;
+
+		for (int j = m_x; j <= M_x; ++j)
+			for (int k = m_y; k <= M_y; ++k)
+				for (int l = m_z; l <= M_z; ++l)
+				{
+			        int h = ((j * 73856093) ^ (k * 19349663) ^ (l * 83492791)) % 199;
+			        if (h < 0) h = -h;
+					
+					//debug << h << " " << H->cell[h].T << "        " << H->T << endl;
+
+			        if (H->cell[h].T == H->T)
+					{
+			        	list<Vertex> ::iterator node_iter;
+			        	for (node_iter = H->cell[h].nodes.begin(); node_iter != H->cell[h].nodes.end(); node_iter++)
+			        	{
+			        		if (node_iter->objId == objId && ((node_iter->localIndex == n1) || (node_iter->localIndex == n2) || (node_iter->localIndex == n3) || (node_iter->localIndex == n4)))
+			        			continue;
+			        		glm::mat3 A;
+			        		glm::vec3 e1, e2, e3;
+			        		e1 = v1 - v0;
+			        		e2 = v2 - v0;
+			        		e3 = v3 - v0;
+			        
+			        		A[0][0] = e1.x;    A[0][1] = e2.x;    A[0][2] = e3.x;
+			        		A[1][0] = e1.y;    A[1][1] = e2.y;    A[1][2] = e3.y;
+			        		A[2][0] = e1.z;    A[2][1] = e2.z;    A[2][2] = e3.z;
+
+			                A = glm::inverse(A);
+			        		glm::vec3 beta = node_iter->p - v0;
+							glm::vec3 b;
+							//that is something wrong with beta = A * beta;
+							b.x = A[0][0] * beta.x + A[0][1] * beta.y + A[0][2] * beta.z;
+							b.y = A[1][0] * beta.x + A[1][1] * beta.y + A[1][2] * beta.z;
+							b.z = A[2][0] * beta.x + A[2][1] * beta.y + A[2][2] * beta.z;
+
+							//debug << b.x * 100 << "   " << b.y * 100 << "   " << b.z * 100 << endl;
+
+			        		if (b.x >= 0 && b.y >= 0 && b.z >= 0 && (b.x + b.y + b.z) <= 1)
+			        		{//contact(n,t)
+								/*
+								glm::mat3 A;
+								glm::vec3 e1, e2, e3;
+								e1 = v1 - v0;
+								e2 = v2 - v0;
+								e3 = v3 - v0;
+								debug << "A" << endl;
+								debug << e1.x << "   " << e2.x << "   " << e3.x << endl;
+								debug << e1.y << "   " << e2.y << "   " << e3.y << endl;
+								debug << e1.z << "   " << e2.z << "   " << e3.z << endl;
+								debug << endl;
+								A[0][0] = e1.x;    A[0][1] = e2.x;    A[0][2] = e3.x;
+								A[1][0] = e1.y;    A[1][1] = e2.y;    A[1][2] = e3.y;
+								A[2][0] = e1.z;    A[2][1] = e2.z;    A[2][2] = e3.z;
+
+								A = glm::inverse(A);
+
+								debug << "A^-1" << endl;
+								debug << A[0][0] << "  " << A[0][1] << "  " << A[0][2] <<endl;
+								debug << A[1][0] << "  " << A[1][1] << "  " << A[1][2] << endl;
+								debug << A[2][0] << "  " << A[2][1] << "  " << A[2][2] << endl;
+								debug << endl;
+								glm::vec3 abeta = node_iter->p - v0;
+								debug << "x-x0" << endl;
+								debug << abeta.x << "   " << abeta.y << "   " << abeta.z << endl;
+								debug << "x1-x0" << endl;
+								debug << e1.x << "   " << e1.y << "   " << e1.z << endl;
+								debug << "x2-x0" << endl;
+								debug << e2.x << "   " << e2.y << "   " << e2.z << endl;
+								debug << "x3-x0" << endl; 
+								debug << e3.x << "   " << e3.y << "   " << e3.z << endl;
+								abeta = A * abeta;
+								debug << endl;
+								debug << "b" << endl;
+								debug << b.x << "   " << b.y << "   " << b.z << endl;
+
+								debug << endl;
+
+  								debug << objId << node_iter->objId << " " << node_iter->localIndex << "           " << n1 << " " << n2 << " " << n3 << " " << n4 << endl;
+								debug << "x" << endl;
+*/
+								debug << node_iter->p.x << "   " << node_iter->p.y << "   " << node_iter->p.z << endl;
+								debug << endl;
+								debug << "tetrahedron of:" << objId << endl;
+								debug << X[n1].x << "   " << X[n1].y << "   " << X[n1].z << endl;
+								debug << X[n2].x << "   " << X[n2].y << "   " << X[n2].z << endl;
+								debug << X[n3].x << "   " << X[n3].y << "   " << X[n3].z << endl;
+								debug << X[n4].x << "   " << X[n4].y << "   " << X[n4].z << endl;
+
+								float d0 = minDistanceBetweenVetexAndTriangle(node_iter->p, &(g_models[objId].bTriangle));
+								float d1 = minDistanceBetweenVetexAndTriangle(X[n1], &(g_models[objId].bTriangle));
+								float d2 = minDistanceBetweenVetexAndTriangle(X[n2], &(g_models[objId].bTriangle));
+								float d3 = minDistanceBetweenVetexAndTriangle(X[n3], &(g_models[objId].bTriangle));
+								float d4 = minDistanceBetweenVetexAndTriangle(X[n4], &(g_models[objId].bTriangle));
+								debug << d0 << endl;
+								debug << d1 << "   " << distanceV[n1] << endl;
+								debug << d2 << "   " << distanceV[n2] << endl;
+								debug << d3 << "   " << distanceV[n3] << endl;
+								debug << d4 << "   " << distanceV[n4] << endl;
+								//g_models[0].Reset();
+								debug << endl;
+								
+			        			glm::vec3 g0(0), g1(0), g2(0), g3(0);
+			        
+			        			float d = distanceV[n1] * (1 - b.x - b.y - b.z) + distanceV[n2] * b.x + distanceV[n3] * b.y + distanceV[n4] * b.z;
+			        /*
+			        			for (int numT = 0; numT < tetrahedraOfVertices[n1].size(); ++numT)
+			        			{
+			        			int tetrahedraIndex = tetrahedraOfVertices[n1][numT];
+			        			g0 += tetrahedra[tetrahedraIndex].Re * gradientV[n1];
+			        			}
+			        			for (int numT = 0; numT < tetrahedraOfVertices[n2].size(); ++numT)
+			        			{
+			        			int tetrahedraIndex = tetrahedraOfVertices[n2][numT];
+			        			g1 += tetrahedra[tetrahedraIndex].Re * gradientV[n2];
+			        			}
+			        			for (int numT = 0; numT < tetrahedraOfVertices[n3].size(); ++numT)
+			        			{
+			        			int tetrahedraIndex = tetrahedraOfVertices[n3][numT];
+			        			g2 += tetrahedra[tetrahedraIndex].Re * gradientV[n3];
+			        			}
+			        			for (int numT = 0; numT < tetrahedraOfVertices[n4].size(); ++numT)
+			        			{
+			        			int tetrahedraIndex = tetrahedraOfVertices[n4][numT];
+			        			g3 += tetrahedra[tetrahedraIndex].Re * gradientV[n4];
+			        			}
+			        			g0 = glm::normalize(g0);
+			        			g1 = glm::normalize(g1);
+			        			g2 = glm::normalize(g2);
+			        			g3 = glm::normalize(g3);
+			        
+			        			glm::vec3 g = g0 * (1 - beta.x - beta.y - beta.z) + g1 * beta.x + g2 * beta.y + g3 * beta.z;*/
+								//debug << distanceV[n1] << " " << distanceV[n2] << " " << distanceV[n3] << " " << distanceV[n4] << endl;
+
+								glm::vec3 g = glm::vec3(0.0f, 1.0f, 0.0f);
+			        			glm::vec3 f = 100000.0f * d * g;
+								debug << 1 - (b.x + b.y + b.z) << "   " << b.x << "   " << b.y << "   " << b.z << endl;
+								debug << i <<"   "<< n1 << " " << n2 << " " << n3 << " " << n4 << endl;
+								debug << distanceV[n1] << " " << distanceV[n2] << " " << distanceV[n3] << " " << distanceV[n4] << endl;
+								debug << d << "   "<< f.x << " " << f.y << " " << f.z << endl;
+								debug << endl;
+								debug << "----------------" << endl;
+								//g_models[node_iter->objId].F[node_iter->localIndex] += f;
+			        			//F[node_iter->localIndex] += f;
+			        			
+			        		}
+			        
+			        	}
+			        }
+				}
+	}
 }
