@@ -14,10 +14,7 @@ DeformableObject::DeformableObject()
 
 	//ReadModelFromFile("bunny.1");
 	ReadModelFromFile(0.0f, 0.0f, 0.0f, false, "bunny_300.1");
-	
-	total_tetrahedra = tetrahedra.size();
 
-	total_points = X.size();
 	mass.resize(total_points);
 
 	//copy positions to buffer 
@@ -29,7 +26,7 @@ DeformableObject::DeformableObject()
 	F0.resize(total_points);
 	residual.resize(total_points);
 	update.resize(total_points);
-	prev_1.resize(total_points);
+	pre.resize(total_points);
 
 	//fill in V
 	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
@@ -40,9 +37,31 @@ DeformableObject::DeformableObject()
 	RecalcMassMatrix();
 	InitializePlastic();
 	//distance file and gradient fild
-	//DistanceFildAndGradientFild();
-	//VetexDistanceAndGradient();
+	for (size_t k = 0; k < tetrahedra.size(); k++)
+	{
+		glm::vec3 x0 = Xi[tetrahedra[k].indices[0]];
+		glm::vec3 x1 = Xi[tetrahedra[k].indices[1]];
+		glm::vec3 x2 = Xi[tetrahedra[k].indices[2]];
+		glm::vec3 x3 = Xi[tetrahedra[k].indices[3]];
+
+		glm::vec3 e10 = x1 - x0;
+		glm::vec3 e20 = x2 - x0;
+		glm::vec3 e30 = x3 - x0;
+		glm::vec3 e12 = x1 - x2;
+		glm::vec3 e23 = x2 - x3;
+		glm::vec3 e31 = x3 - x1;
+		totalLength += glm::length(e10);
+		totalLength += glm::length(e20);
+		totalLength += glm::length(e30);
+		totalLength += glm::length(e12);
+		totalLength += glm::length(e23);
+		totalLength += glm::length(e31);
+
+	}
 	l = totalLength / (total_tetrahedra * 6);
+	DistanceFildAndGradientFild();
+	VetexDistanceAndGradient();
+	
 }
 DeformableObject::DeformableObject(float x, float y, float z, bool ifFixed)
 {
@@ -55,9 +74,6 @@ DeformableObject::DeformableObject(float x, float y, float z, bool ifFixed)
 
 	ReadModelFromFile(x, y, z, ifFixed, "bunny_300.1");
 
-	total_tetrahedra = tetrahedra.size();
-
-	total_points = X.size();
 	mass.resize(total_points);
 
 	//copy positions to buffer 
@@ -69,7 +85,7 @@ DeformableObject::DeformableObject(float x, float y, float z, bool ifFixed)
 	F0.resize(total_points);
 	residual.resize(total_points);
 	update.resize(total_points);
-	prev_1.resize(total_points);
+	pre.resize(total_points);
 
 	//fill in V
 	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
@@ -80,9 +96,30 @@ DeformableObject::DeformableObject(float x, float y, float z, bool ifFixed)
 	RecalcMassMatrix();
 	InitializePlastic();
 	//distance file and gradient fild
-	//DistanceFildAndGradientFild();
-	//VetexDistanceAndGradient();
+	for (size_t k = 0; k < tetrahedra.size(); k++) 
+	{
+		glm::vec3 x0 = Xi[tetrahedra[k].indices[0]];
+		glm::vec3 x1 = Xi[tetrahedra[k].indices[1]];
+		glm::vec3 x2 = Xi[tetrahedra[k].indices[2]];
+		glm::vec3 x3 = Xi[tetrahedra[k].indices[3]];
+
+		glm::vec3 e10 = x1 - x0;
+		glm::vec3 e20 = x2 - x0;
+		glm::vec3 e30 = x3 - x0;
+		glm::vec3 e12 = x1 - x2;
+		glm::vec3 e23 = x2 - x3;
+		glm::vec3 e31 = x3 - x1;
+		totalLength += glm::length(e10);
+		totalLength += glm::length(e20);
+		totalLength += glm::length(e30);
+		totalLength += glm::length(e12);
+		totalLength += glm::length(e23);
+		totalLength += glm::length(e31);
+
+	}
 	l = totalLength / (total_tetrahedra * 6);
+    DistanceFildAndGradientFild();
+	VetexDistanceAndGradient();	
 }
 DeformableObject::DeformableObject(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth)
 {
@@ -110,7 +147,7 @@ DeformableObject::DeformableObject(size_t xdim, size_t ydim, size_t zdim, float 
 	F0.resize(total_points);
 	residual.resize(total_points);
 	update.resize(total_points);
-	prev_1.resize(total_points);
+	pre.resize(total_points);
 
 	//fill in V
 	memset(&(V[0].x), 0, total_points*sizeof(glm::vec3));
@@ -119,9 +156,7 @@ DeformableObject::DeformableObject(size_t xdim, size_t ydim, size_t zdim, float 
 	ClearStiffnessAssembly();
 	RecalcMassMatrix();
 	InitializePlastic();
-	//distance file and gradient fild
-	DistanceFildAndGradientFild();
-	VetexDistanceAndGradient();
+
 }
 DeformableObject::~DeformableObject()
 {
@@ -130,7 +165,7 @@ DeformableObject::~DeformableObject()
 
 void DeformableObject::CalculateK() {
 
-	for (size_t k = 0; k < tetrahedra.size(); k++) {
+	for (size_t k = 0; k<tetrahedra.size(); k++) {
 
 		glm::vec3 x0 = Xi[tetrahedra[k].indices[0]];
 		glm::vec3 x1 = Xi[tetrahedra[k].indices[1]];
@@ -142,15 +177,7 @@ void DeformableObject::CalculateK() {
 		glm::vec3 e10 = x1 - x0;
 		glm::vec3 e20 = x2 - x0;
 		glm::vec3 e30 = x3 - x0;
-		glm::vec3 e12 = x1 - x2;
-		glm::vec3 e23 = x2 - x3;
-		glm::vec3 e31 = x3 - x1;
-		totalLength += glm::length(e10);
-		totalLength += glm::length(e20);
-		totalLength += glm::length(e30);
-		totalLength += glm::length(e12);
-		totalLength += glm::length(e23);
-		totalLength += glm::length(e31);
+
 		tetrahedra[k].e1 = e10;
 		tetrahedra[k].e2 = e20;
 		tetrahedra[k].e3 = e30;
@@ -399,8 +426,20 @@ void DeformableObject::OnShutdown() {
 	F0.clear();
 	b.clear();
 	residual.clear();
-	prev_1.clear();
+	pre.clear();
 	update.clear();
+}
+
+
+
+void DeformableObject::ComputeForces() {
+	size_t i = 0;
+	for (i = 0; i<total_points; i++) {
+		F[i] = glm::vec3(0);
+
+		//add gravity force only for non-fixed points
+		F[i] += gravity*mass[i];
+	}
 }
 
 
@@ -653,8 +692,6 @@ void DeformableObject::DynamicsAssembly(float dt) {
 		b[k] += V[k] * m_i;
 	}
 }
-
-
 void DeformableObject::ConjugateGradientSolver(float dt) {
 
 
@@ -672,13 +709,13 @@ void DeformableObject::ConjugateGradientSolver(float dt) {
 			float v_jx = V[j].x;
 			float v_jy = V[j].y;
 			float v_jz = V[j].z;
-			glm::vec3 prod = glm::vec3(A_ij[0][0] * v_jx + A_ij[0][1] * v_jy + A_ij[0][2] * v_jz, //A_ij * prev_1[j]
+			glm::vec3 prod = glm::vec3(A_ij[0][0] * v_jx + A_ij[0][1] * v_jy + A_ij[0][2] * v_jz, //A_ij * pre[j]
 				A_ij[1][0] * v_jx + A_ij[1][1] * v_jy + A_ij[1][2] * v_jz,
 				A_ij[2][0] * v_jx + A_ij[2][1] * v_jy + A_ij[2][2] * v_jz);
 			residual[k] -= prod;//  A_ij * v_j;
 
 		}
-		prev_1[k] = residual[k];
+		pre[k] = residual[k];
 	}
 
 	for (int i = 0; i<i_max; i++) {
@@ -697,17 +734,17 @@ void DeformableObject::ConjugateGradientSolver(float dt) {
 			for (matrix_iterator A = Abegin; A != Aend; ++A) {
 				unsigned int j = A->first;
 				glm::mat3& A_ij = A->second;
-				float prevx = prev_1[j].x;
-				float prevy = prev_1[j].y;
-				float prevz = prev_1[j].z;
-				glm::vec3 prod = glm::vec3(A_ij[0][0] * prevx + A_ij[0][1] * prevy + A_ij[0][2] * prevz, //A_ij * prev_1[j]
+				float prevx = pre[j].x;
+				float prevy = pre[j].y;
+				float prevz = pre[j].z;
+				glm::vec3 prod = glm::vec3(A_ij[0][0] * prevx + A_ij[0][1] * prevy + A_ij[0][2] * prevz, //A_ij * pre[j]
 					A_ij[1][0] * prevx + A_ij[1][1] * prevy + A_ij[1][2] * prevz,
 					A_ij[2][0] * prevx + A_ij[2][1] * prevy + A_ij[2][2] * prevz);
-				update[k] += prod;//A_ij*prev_1[j];
+				update[k] += prod;//A_ij*pre[j];
 
 			}
 			d += glm::dot(residual[k], residual[k]);
-			d2 += glm::dot(prev_1[k], update[k]);
+			d2 += glm::dot(pre[k], update[k]);
 		}
 
 		if (fabs(d2)<tiny)
@@ -721,7 +758,7 @@ void DeformableObject::ConjugateGradientSolver(float dt) {
 			if (IsFixed[k])
 				continue;
 
-			V[k] += prev_1[k] * d3;
+			V[k] += pre[k] * d3;
 			residual[k] -= update[k] * d3;
 			d1 += glm::dot(residual[k], residual[k]);
 		}
@@ -737,11 +774,10 @@ void DeformableObject::ConjugateGradientSolver(float dt) {
 		for (size_t k = 0; k<total_points; k++) {
 			if (IsFixed[k])
 				continue;
-			prev_1[k] = residual[k] + prev_1[k] * d4;
+			pre[k] = residual[k] + pre[k] * d4;
 		}
 	}
 }
-
 void DeformableObject::UpdatePosition(float dt) {
 	for (size_t k = 0; k<total_points; k++) {
 		if (IsFixed[k])
@@ -750,16 +786,7 @@ void DeformableObject::UpdatePosition(float dt) {
 	}
 }
 
-void DeformableObject::ComputeForces() {
-	size_t i = 0;
-	for (i = 0; i<total_points; i++) {
-		//F[i] = glm::vec3(0);
 
-		//add gravity force only for non-fixed points
-		F[i] = gravity*mass[i];
-	}
-
-}
 void DeformableObject::GroundCollision()
 {
 	for (size_t i = 0; i<total_points; i++) {
@@ -772,7 +799,30 @@ void DeformableObject::GroundCollision()
 		}
 	}
 }
-
+void DeformableObject::UpdateGradient()
+{
+	glm::vec3 newG;
+	//for (int i = 0; i < total_points; ++i)
+		for (int i = 30; i < 31; ++i)
+	{
+		newG = glm::vec3(0.0);
+		for (int numT = 0; numT < tetrahedraOfVertices[i].size(); ++numT)
+		{
+			int tetrahedraIndex = tetrahedraOfVertices[i][numT];
+			debug << tetrahedraIndex<<endl;
+			debug << tetrahedra[tetrahedraIndex].Re[0][0] << "  " << tetrahedra[tetrahedraIndex].Re[0][1] << "  " << tetrahedra[tetrahedraIndex].Re[0][2] << endl;
+			debug << tetrahedra[tetrahedraIndex].Re[1][0] << "  " << tetrahedra[tetrahedraIndex].Re[1][1] << "  " << tetrahedra[tetrahedraIndex].Re[1][2] << endl;
+			debug << tetrahedra[tetrahedraIndex].Re[2][0] << "  " << tetrahedra[tetrahedraIndex].Re[2][1] << "  " << tetrahedra[tetrahedraIndex].Re[2][2] << endl;
+			newG += tetrahedra[tetrahedraIndex].Re * gradientV[i];
+			//newG.x = tetrahedra[tetrahedraIndex].Re[0][0] * gradientV[i].x + tetrahedra[tetrahedraIndex].Re[0][1] * gradientV[i].y + tetrahedra[tetrahedraIndex].Re[0][2] * gradientV[i].z;
+			//newG.y = tetrahedra[tetrahedraIndex].Re[1][0] * gradientV[i].x + tetrahedra[tetrahedraIndex].Re[1][1] * gradientV[i].y + tetrahedra[tetrahedraIndex].Re[1][2] * gradientV[i].z;
+			//newG.z = tetrahedra[tetrahedraIndex].Re[2][0] * gradientV[i].x + tetrahedra[tetrahedraIndex].Re[2][1] * gradientV[i].y + tetrahedra[tetrahedraIndex].Re[2][2] * gradientV[i].z;
+		}
+		debug << endl;
+		newG = glm::normalize(newG);
+		gradientV[i] = newG;
+	}
+}
 void DeformableObject::StepPhysics(float dt) {
 
 	ComputeForces();
@@ -796,7 +846,6 @@ void DeformableObject::StepPhysics(float dt) {
 	//EigenSolve();
 
 	UpdatePosition(dt);
-
 	//GroundCollision();
 }
 
@@ -855,12 +904,7 @@ void DeformableObject::DistanceFildAndGradientFild()
 	}
 	//debug << mx << " " << my << " " << mz << " " << Mx << " " << My << " " << Mz << endl;
 
-	ABmx = mx;
-	ABmy = my;
-	ABmz = mz;
-	ABMx = Mx;
-	ABMy = My;
-	ABMz = Mz;
+
 	mx -= l;
 	my -= l;
 	mz -= l;
@@ -870,7 +914,12 @@ void DeformableObject::DistanceFildAndGradientFild()
 	Mx += l;
 	My += l;
 	Mz += l;
-
+	ABmx = mx;
+	ABmy = my;
+	ABmz = mz;
+	ABMx = Mx;
+	ABMy = My;
+	ABMz = Mz;
 	//debug << mx << " " << my << " " << mz << " " << Mx << " " << My << " " << Mz << endl;
 	float li = Mx - mx;
 	float lj = My - my;
@@ -883,11 +932,10 @@ void DeformableObject::DistanceFildAndGradientFild()
 	gj = yj;
 	gk = zk;
 	//debug << l << " " << gi << " " << gj << " " << gk << endl;
-	cout << li <<"  "<<l<<"  "<< xi << " " << yj << " " << zk << endl;
+	//cout << li <<"  "<<l<<"  "<< xi << " " << yj << " " << zk << endl;
 	grid.resize(xi*yj*zk);
 	distanceFild.resize(xi*yj*zk);
 	gradientFild.resize(xi*yj*zk);
-	distanceFildV.resize(xi*yj*zk);
 
 	for (int i = 0; i < xi; ++i)
 		for (int j = 0; j < yj; ++j)
@@ -895,8 +943,13 @@ void DeformableObject::DistanceFildAndGradientFild()
 			{
 		int index = i * yj * zk + j * zk + k;
 		grid[index] = glm::vec3(mx + (i * l), my + (j * l), mz + (k * l));
-		distanceFild[index] = minDistanceBetweenVetexAndTriangle(grid[index], &bTriangle);
-		distanceFildV[index] = dhelp2;
+		distanceFild[index] = - minDistanceBetweenVetexAndTriangle(grid[index], &bTriangle);
+		if (IsVinsideObj(grid[index]))
+		{ 
+			distanceFild[index] = -distanceFild[index];
+		}
+
+		//distanceFildV[index] = dhelp2;
 		//debug << distanceFild[index] << endl;
 			}
 	//debug << "distanceFild over." << endl;
@@ -912,29 +965,68 @@ void DeformableObject::DistanceFildAndGradientFild()
 		int di_1 = di - yj * zk;
 		int djp1 = dj + zk;
 		int dj_1 = dj - zk;
-		int dkp1 = dk + k;
-		int dk_1 = dk - k;
-		gradientFild[di + dj + dk] = glm::vec3(
+		int dkp1 = dk + 1;
+		int dk_1 = dk - 1;
+		gradientFild[di + dj + dk] = -glm::vec3(
 			distanceFild[dip1 + dj + dk] - distanceFild[di_1 + dj + dk], 
 			distanceFild[di + djp1 + dk] - distanceFild[di_1 + dj_1 + dk], 
 			distanceFild[di + dj + dkp1] - distanceFild[di + dj + dk_1]);
 			}
 }
+bool  DeformableObject::IsVinsideObj(glm::vec3 v)
+{
+	for (int i = 0; i < total_tetrahedra; ++i)
+	{
+		int n1 = tetrahedra[i].indices[0];
+		int n2 = tetrahedra[i].indices[1];
+		int n3 = tetrahedra[i].indices[2];
+		int n4 = tetrahedra[i].indices[3];
+		glm::vec3 v0 = X[n1];
+		glm::vec3 v1 = X[n2];
+		glm::vec3 v2 = X[n3];
+		glm::vec3 v3 = X[n4];
+
+		glm::mat3 A;
+		glm::vec3 e1, e2, e3;
+		e1 = v1 - v0;
+		e2 = v2 - v0;
+		e3 = v3 - v0;
+
+		A[0][0] = e1.x;    A[0][1] = e2.x;    A[0][2] = e3.x;
+		A[1][0] = e1.y;    A[1][1] = e2.y;    A[1][2] = e3.y;
+		A[2][0] = e1.z;    A[2][1] = e2.z;    A[2][2] = e3.z;
+
+		A = glm::inverse(A);
+		glm::vec3 beta = v - v0;
+		glm::vec3 b;
+
+		b.x = A[0][0] * beta.x + A[0][1] * beta.y + A[0][2] * beta.z;
+		b.y = A[1][0] * beta.x + A[1][1] * beta.y + A[1][2] * beta.z;
+		b.z = A[2][0] * beta.x + A[2][1] * beta.y + A[2][2] * beta.z;
+
+
+		if (b.x >= 0 && b.y >= 0 && b.z >= 0 && (b.x + b.y + b.z) <= 1)
+			return true;
+	}
+	return false;
+}
 float DeformableObject::minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle)
+//float DeformableObject::minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle, glm::vec3 *dhelp2)
 {
 	float distance = 100000;
 	for (int i = 0; i < total_btriangle; ++i)
 	{
-		float d = DistanceBetweenVT(v, (*bTriangle)[i], &dhelp);
-		if (distance < d)
+		float d = DistanceBetweenVT(v, (*bTriangle)[i]);
+		if (d < distance)
 		{
-			distance = glm::min(distance, d);
-			dhelp2 = dhelp - v;
+			distance = d;
+			//*dhelp2 = dhelp;
 		}
 	}
 	return distance;
 }
-float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm::vec3 *dhelp)
+float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt)
+//float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm::vec3 *dhelp)
 {//geometric tools for computer graphics p.275
 	glm::vec3 v0, v1, v2, dv;
 	float a, b, c, d, e, f;
@@ -962,7 +1054,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 		float invDet = 1 / det;
 		s *= invDet;
 		t *= invDet;
-		*dhelp = v0 + s*v1 + t*v2;
+		//*dhelp = v0 + s*v1 + t*v2;
 		return sqrt(a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f);
 	}
 	else
@@ -976,14 +1068,14 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 				{//on t = 0;
 					t = 0;
 					s = (d >= 0 ? 0 : (-d >= a ? 1 : -d / a));
-					*dhelp = v0 + s*v1 + t*v2;
+					//*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * d*s + f);
 				}
 				else
 				{
 					s = 0;
 					t = (e >= 0 ? 0 : (-e >= c ? 1 : -e / c));
-					*dhelp = v0 + s*v1 + t*v2;
+					//*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(c*t*t + 2 * e*t + f);
 				}
 			}
@@ -991,7 +1083,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 			{//region 3
 				s = 0;
 				t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
-				*dhelp = v0 + s*v1 + t*v2;
+				//*dhelp = v0 + s*v1 + t*v2;
 				return sqrt(c*t*t + 2 * e*t + f);
 			}
 		}
@@ -999,7 +1091,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 		{//region 5
 			t = 0;
 			s = (d >= 0 ? 0 : (-d >= a ? 1 : -d/a));
-			*dhelp = v0 + s*v1 + t*v2;
+			//*dhelp = v0 + s*v1 + t*v2;
 			return sqrt(a*s*s + 2 * d*s + 2 * e*t + f);
 		}
 	    }
@@ -1015,14 +1107,14 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 					float denom = a - 2 * b + c;
 					s = (numer >= denom ? 1 : numer/denom);
 					t = 1 - s;
-					*dhelp = v0 + s*v1 + t*v2;
+					//*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
 				}
 				else
 				{
 					s = 0;
 					t = (tmp1 < 0 ? 1 : (e >= 0 ? 0 : -e/c));
-					*dhelp = v0 + s*v1 + t*v2;
+					//*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(c*t*t + 2 * e*t + f);
 				}
 			}
@@ -1036,14 +1128,14 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 					float denom = a - 2 * b + c;
 					s = (numer >= denom ? 1 : numer / denom);
 					t = 1 - s;
-					*dhelp = v0 + s*v1 + t*v2;
+					//*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
 				}
 				else
 				{// or on 
 					t = 0;
 					s = (tmp1 < 0 ? 1 : (d >= 0 ? 0 : -d / a));
-					*dhelp = v0 + s*v1 + t*v2;
+					//*dhelp = v0 + s*v1 + t*v2;
 					return sqrt(a*s*s + 2 * d*s + f);
 				}
 			}
@@ -1060,7 +1152,7 @@ float DeformableObject::DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm:
 					s = (numer >= denom ? 1 : numer / denom);
 				}
 				t = 1 - s;
-				*dhelp = v0 + s*v1 + t*v2;
+				//*dhelp = v0 + s*v1 + t*v2;
 				return sqrt(a*s*s + 2 * b*s*t + c*t*t + 2 * d*s + 2 * e*t + f);
 			}
 		}
@@ -1069,10 +1161,12 @@ void DeformableObject::VetexDistanceAndGradient()
 {
 	for (int i = 0; i < total_points; ++i)
 	{
-		InterpolateDistanceGradient(i, &gradientV[i], &distanceV[i]);
+		if (distanceV[i])
+			distanceV[i] = minDistanceBetweenVetexAndTriangle(X[i], &bTriangle);
+		InterpolateDistanceGradient(i, &gradientV[i]);
 	}
 }
-void DeformableObject::InterpolateDistanceGradient(int ind, glm::vec3 *g, float *d)
+void DeformableObject::InterpolateDistanceGradient(int ind, glm::vec3 *g)
 {
 	float li, lj, lk;
 	li = X[ind].x - ABmx;
@@ -1106,30 +1200,16 @@ void DeformableObject::InterpolateDistanceGradient(int ind, glm::vec3 *g, float 
 	gg = gradientFild[(i + 1) * gj * gk + (j + 1) * gk + k + 1];
 	gh = gradientFild[i * gj * gk + (j + 1) * gk + k + 1];
 
-	da = distanceFild[i * gj * gk + j * gk + k];
-	db = distanceFild[(i + 1) * gj * gk + j * gk + k];
-	dc = distanceFild[(i + 1) * gj * gk + j * gk + k + 1];
-	dd = distanceFild[i * gj * gk + j * gk + k + 1];
-
-	de = distanceFild[i * gj * gk + (j + 1) * gk + k];
-	df = distanceFild[(i + 1) * gj * gk + (j + 1) * gk + k];
-	dg = distanceFild[(i + 1) * gj * gk + (j + 1) * gk + k + 1];
-	dh = distanceFild[i * gj * gk + (j + 1) * gk + k + 1];
 	//interpolation in a b c d(i,k)
 	float factori = (X[ind].x - a.x) / l;
 	float factork = (X[ind].z - a.z) / l;
 	float factorj = (X[ind].y - a.y) / l;
 
 	glm::vec3 gabcd = (ga * (1 - factori) + gb * factori) * (1 - factork) + (gd * (1 - factori) + gc * factori) * factork;
-	glm::vec3 gefgh = (ge * (1 - factori) + gf * factori) * (1 - factork) + (gg * (1 - factori) + gh * factori) * factork;
-
-	float dabcd = (da * (1 - factori) + db * factori) * (1 - factork) + (dd * (1 - factori) + dc * factori) * factork;
-	float defgh = (de * (1 - factori) + df * factori) * (1 - factork) + (dg * (1 - factori) + dh * factori) * factork;
-	//debug << abcd.x << " " << abcd.y << " " << abcd.z << " " << endl;
-	//debug << efgh.x << " " << efgh.y << " " << efgh.z << " " << endl;
+	glm::vec3 gefgh = (ge * (1 - factori) + gf * factori) * (1 - factork) + (gh * (1 - factori) + gg * factori) * factork;
 
 	*g = gabcd * (1 - factorj) + gefgh * factorj;
-	*d = dabcd * (1 - factorj) + defgh * factorj;
+
 }
 
 void DeformableObject::GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth) {
@@ -1137,20 +1217,17 @@ void DeformableObject::GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, flo
 	X.resize(total_points);
 	Xi.resize(total_points);
 	IsFixed.resize(total_points);
-	distanceV.resize(total_points);
-	gradientV.resize(total_points);
-
 	int ind = 0;
 	float hzdim = zdim / 2.0f;
 	for (size_t x = 0; x <= xdim; ++x) {
 		for (unsigned int y = 0; y <= ydim; ++y) {
 			for (unsigned int z = 0; z <= zdim; ++z) {
-				X[ind] = glm::vec3(width*x, height*z, depth*y);
+				X[ind] = glm::vec3(width*x, height*z + 0.5, depth*y);
 				Xi[ind] = X[ind];
 
 				//Make the first few points fixed
-				if (Xi[ind].x < 0.01)
-					IsFixed[ind] = true;
+				//if (Xi[ind].x < 0.01)
+					IsFixed[ind] = false;
 
 				ind++;
 			}
@@ -1158,12 +1235,12 @@ void DeformableObject::GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, flo
 	}
 	//offset the tetrahedral mesh by 0.5 units on y axis
 	//and 0.5 of the depth in z axis
-	
+	/*
 	for (size_t i = 0; i<total_points; i++) {
 		X[i].y += 0.5;
 		X[i].z -= hzdim*depth;
 	}
-    
+*/
 	for (size_t i = 0; i < xdim; ++i) {
 		for (size_t j = 0; j < ydim; ++j) {
 			for (size_t k = 0; k < zdim; ++k) {
@@ -1175,7 +1252,6 @@ void DeformableObject::GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, flo
 				int p6 = p7 + 1;
 				int p4 = (i * (ydim + 1) + (j + 1)) * (zdim + 1) + k;
 				int p5 = p4 + 1;
-
 				// Ensure that neighboring tetras are sharing faces
 				if ((i + j + k) % 2 == 1) {
 					AddTetrahedron(p1, p2, p6, p3);
@@ -1217,10 +1293,6 @@ void DeformableObject::firstPass(HashMap *H, int objId)
 		int z = (int)(p.z / g_l);
 		int h = ((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) % 199;
 		if (h < 0) h = -h;
-		//cout << l << endl;
-		//debug << X[j].x << " " << X[j].y << " " << X[j].z << endl;
-		//debug << x << " "<< y <<  " "<< z << endl;
-		//debug << h<<"         ";
 
 		if (H->cell[h].T != H->T)
 		{
@@ -1321,109 +1393,48 @@ void DeformableObject::secondPass(HashMap *H, int objId)
 
 			        		if (b.x >= 0 && b.y >= 0 && b.z >= 0 && (b.x + b.y + b.z) <= 1)
 			        		{//contact(n,t)
-								/*
-								glm::mat3 A;
-								glm::vec3 e1, e2, e3;
-								e1 = v1 - v0;
-								e2 = v2 - v0;
-								e3 = v3 - v0;
-								debug << "A" << endl;
-								debug << e1.x << "   " << e2.x << "   " << e3.x << endl;
-								debug << e1.y << "   " << e2.y << "   " << e3.y << endl;
-								debug << e1.z << "   " << e2.z << "   " << e3.z << endl;
-								debug << endl;
-								A[0][0] = e1.x;    A[0][1] = e2.x;    A[0][2] = e3.x;
-								A[1][0] = e1.y;    A[1][1] = e2.y;    A[1][2] = e3.y;
-								A[2][0] = e1.z;    A[2][1] = e2.z;    A[2][2] = e3.z;
-
-								A = glm::inverse(A);
-
-								debug << "A^-1" << endl;
-								debug << A[0][0] << "  " << A[0][1] << "  " << A[0][2] <<endl;
-								debug << A[1][0] << "  " << A[1][1] << "  " << A[1][2] << endl;
-								debug << A[2][0] << "  " << A[2][1] << "  " << A[2][2] << endl;
-								debug << endl;
-								glm::vec3 abeta = node_iter->p - v0;
-								debug << "x-x0" << endl;
-								debug << abeta.x << "   " << abeta.y << "   " << abeta.z << endl;
-								debug << "x1-x0" << endl;
-								debug << e1.x << "   " << e1.y << "   " << e1.z << endl;
-								debug << "x2-x0" << endl;
-								debug << e2.x << "   " << e2.y << "   " << e2.z << endl;
-								debug << "x3-x0" << endl; 
-								debug << e3.x << "   " << e3.y << "   " << e3.z << endl;
-								abeta = A * abeta;
-								debug << endl;
-								debug << "b" << endl;
-								debug << b.x << "   " << b.y << "   " << b.z << endl;
-
-								debug << endl;
-
-  								debug << objId << node_iter->objId << " " << node_iter->localIndex << "           " << n1 << " " << n2 << " " << n3 << " " << n4 << endl;
-								debug << "x" << endl;
-*/
-								debug << node_iter->p.x << "   " << node_iter->p.y << "   " << node_iter->p.z << endl;
-								debug << endl;
-								debug << "tetrahedron of:" << objId << endl;
-								debug << X[n1].x << "   " << X[n1].y << "   " << X[n1].z << endl;
-								debug << X[n2].x << "   " << X[n2].y << "   " << X[n2].z << endl;
-								debug << X[n3].x << "   " << X[n3].y << "   " << X[n3].z << endl;
-								debug << X[n4].x << "   " << X[n4].y << "   " << X[n4].z << endl;
-
-								float d0 = minDistanceBetweenVetexAndTriangle(node_iter->p, &(g_models[objId].bTriangle));
-								float d1 = minDistanceBetweenVetexAndTriangle(X[n1], &(g_models[objId].bTriangle));
-								float d2 = minDistanceBetweenVetexAndTriangle(X[n2], &(g_models[objId].bTriangle));
-								float d3 = minDistanceBetweenVetexAndTriangle(X[n3], &(g_models[objId].bTriangle));
-								float d4 = minDistanceBetweenVetexAndTriangle(X[n4], &(g_models[objId].bTriangle));
-								debug << d0 << endl;
-								debug << d1 << "   " << distanceV[n1] << endl;
-								debug << d2 << "   " << distanceV[n2] << endl;
-								debug << d3 << "   " << distanceV[n3] << endl;
-								debug << d4 << "   " << distanceV[n4] << endl;
-								//g_models[0].Reset();
-								debug << endl;
-								
 			        			glm::vec3 g0(0), g1(0), g2(0), g3(0);
 			        
 			        			float d = distanceV[n1] * (1 - b.x - b.y - b.z) + distanceV[n2] * b.x + distanceV[n3] * b.y + distanceV[n4] * b.z;
-			        /*
+
 			        			for (int numT = 0; numT < tetrahedraOfVertices[n1].size(); ++numT)
 			        			{
 			        			int tetrahedraIndex = tetrahedraOfVertices[n1][numT];
-			        			g0 += tetrahedra[tetrahedraIndex].Re * gradientV[n1];
+								g0.x = tetrahedra[tetrahedraIndex].Re[0][0] * gradientV[n1].x + tetrahedra[tetrahedraIndex].Re[0][1] * gradientV[n1].y + tetrahedra[tetrahedraIndex].Re[0][2] * gradientV[n1].z;
+								g0.y = tetrahedra[tetrahedraIndex].Re[1][0] * gradientV[n1].x + tetrahedra[tetrahedraIndex].Re[1][1] * gradientV[n1].y + tetrahedra[tetrahedraIndex].Re[1][2] * gradientV[n1].z;
+								g0.z = tetrahedra[tetrahedraIndex].Re[2][0] * gradientV[n1].x + tetrahedra[tetrahedraIndex].Re[2][1] * gradientV[n1].y + tetrahedra[tetrahedraIndex].Re[2][2] * gradientV[n1].z;
 			        			}
 			        			for (int numT = 0; numT < tetrahedraOfVertices[n2].size(); ++numT)
 			        			{
 			        			int tetrahedraIndex = tetrahedraOfVertices[n2][numT];
-			        			g1 += tetrahedra[tetrahedraIndex].Re * gradientV[n2];
+								g1.x = tetrahedra[tetrahedraIndex].Re[0][0] * gradientV[n2].x + tetrahedra[tetrahedraIndex].Re[0][1] * gradientV[n2].y + tetrahedra[tetrahedraIndex].Re[0][2] * gradientV[n2].z;
+								g1.y = tetrahedra[tetrahedraIndex].Re[1][0] * gradientV[n2].x + tetrahedra[tetrahedraIndex].Re[1][1] * gradientV[n2].y + tetrahedra[tetrahedraIndex].Re[1][2] * gradientV[n2].z;
+								g1.z = tetrahedra[tetrahedraIndex].Re[2][0] * gradientV[n2].x + tetrahedra[tetrahedraIndex].Re[2][1] * gradientV[n2].y + tetrahedra[tetrahedraIndex].Re[2][2] * gradientV[n2].z;
 			        			}
 			        			for (int numT = 0; numT < tetrahedraOfVertices[n3].size(); ++numT)
 			        			{
 			        			int tetrahedraIndex = tetrahedraOfVertices[n3][numT];
-			        			g2 += tetrahedra[tetrahedraIndex].Re * gradientV[n3];
+								g2.x = tetrahedra[tetrahedraIndex].Re[0][0] * gradientV[n3].x + tetrahedra[tetrahedraIndex].Re[0][1] * gradientV[n3].y + tetrahedra[tetrahedraIndex].Re[0][2] * gradientV[n3].z;
+								g2.y = tetrahedra[tetrahedraIndex].Re[1][0] * gradientV[n3].x + tetrahedra[tetrahedraIndex].Re[1][1] * gradientV[n3].y + tetrahedra[tetrahedraIndex].Re[1][2] * gradientV[n3].z;
+								g2.z = tetrahedra[tetrahedraIndex].Re[2][0] * gradientV[n3].x + tetrahedra[tetrahedraIndex].Re[2][1] * gradientV[n3].y + tetrahedra[tetrahedraIndex].Re[2][2] * gradientV[n3].z;
 			        			}
 			        			for (int numT = 0; numT < tetrahedraOfVertices[n4].size(); ++numT)
 			        			{
 			        			int tetrahedraIndex = tetrahedraOfVertices[n4][numT];
-			        			g3 += tetrahedra[tetrahedraIndex].Re * gradientV[n4];
+								g3.x = tetrahedra[tetrahedraIndex].Re[0][0] * gradientV[n4].x + tetrahedra[tetrahedraIndex].Re[0][1] * gradientV[n4].y + tetrahedra[tetrahedraIndex].Re[0][2] * gradientV[n4].z;
+								g3.y = tetrahedra[tetrahedraIndex].Re[1][0] * gradientV[n4].x + tetrahedra[tetrahedraIndex].Re[1][1] * gradientV[n4].y + tetrahedra[tetrahedraIndex].Re[1][2] * gradientV[n4].z;
+								g3.z = tetrahedra[tetrahedraIndex].Re[2][0] * gradientV[n4].x + tetrahedra[tetrahedraIndex].Re[2][1] * gradientV[n4].y + tetrahedra[tetrahedraIndex].Re[2][2] * gradientV[n4].z;
 			        			}
-			        			g0 = glm::normalize(g0);
-			        			g1 = glm::normalize(g1);
-			        			g2 = glm::normalize(g2);
-			        			g3 = glm::normalize(g3);
+								g0 = glm::normalize(g0);
+								g1 = glm::normalize(g1);
+								g2 = glm::normalize(g2);
+								g3 = glm::normalize(g3);
 			        
-			        			glm::vec3 g = g0 * (1 - beta.x - beta.y - beta.z) + g1 * beta.x + g2 * beta.y + g3 * beta.z;*/
-								//debug << distanceV[n1] << " " << distanceV[n2] << " " << distanceV[n3] << " " << distanceV[n4] << endl;
-
-								glm::vec3 g = glm::vec3(0.0f, 1.0f, 0.0f);
+								glm::vec3 g = g0 * (1 - beta.x - beta.y - beta.z) + g1 * beta.x + g2 * beta.y + g3 * beta.z;
 			        			glm::vec3 f = 100000.0f * d * g;
-								debug << 1 - (b.x + b.y + b.z) << "   " << b.x << "   " << b.y << "   " << b.z << endl;
-								debug << i <<"   "<< n1 << " " << n2 << " " << n3 << " " << n4 << endl;
-								debug << distanceV[n1] << " " << distanceV[n2] << " " << distanceV[n3] << " " << distanceV[n4] << endl;
-								debug << d << "   "<< f.x << " " << f.y << " " << f.z << endl;
-								debug << endl;
-								debug << "----------------" << endl;
-								//g_models[node_iter->objId].F[node_iter->localIndex] += f;
+								debug << node_iter->p.x << "  " << node_iter->p.y << "   " << node_iter->p.z << endl;
+								debug << g.x << "  " << g.y << "  " << g.z << endl;
+								g_models[node_iter->objId].F[node_iter->localIndex] += f;
 			        			//F[node_iter->localIndex] += f;
 			        			
 			        		}

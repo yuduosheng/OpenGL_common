@@ -32,9 +32,8 @@ public:
 	vector<BoundaryTriangle> bTriangle;
 	vector<glm::vec3> grid;
 	vector<float> distanceFild;
-	vector<glm::vec3> distanceFildV;
-	glm::vec3 dhelp;
-	glm::vec3 dhelp2;
+	//glm::vec3 dhelp;
+	//glm::vec3 dhelp2;
 	float gs, gt;
 	vector<glm::vec3> gradientFild;
 	vector<float> distanceV;
@@ -59,12 +58,6 @@ public:
 	float d18; 
 
 	glm::vec3 D; //Isotropic elasticity matrix D
-
-	int oldX = 0, oldY = 0;
-	float rX = 15, rY = 0;
-	int state = 1;
-	float dist = -2.5f;
-	const int GRID_SIZE = 5;
 
 
 	glm::vec3 gravity = glm::vec3(0.0f, -9.81f, 0.0f);
@@ -91,7 +84,7 @@ public:
 
 	//For Conjugate Gradient 
 	vector<glm::vec3> residual;
-	vector<glm::vec3> prev_1;
+	vector<glm::vec3> pre;
 	vector<glm::vec3> update;
 
 	float tiny = 1e-010f;       // TODO: Should be user controllable
@@ -150,17 +143,24 @@ public:
 	void DynamicsAssembly(float dt);
 	void ConjugateGradientSolver(float dt);
 	void UpdatePosition(float dt);
-
+	void UpdateGradient();
 	void GroundCollision();
 	void StepPhysics(float dt);
 
 	void renderModel();
 
 	void                    DistanceFildAndGradientFild();
+
+	//float                   minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle, glm::vec3 *dhelp2);
+	//float                   DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm::vec3 *dhelp);
 	float                   minDistanceBetweenVetexAndTriangle(glm::vec3 v, vector<BoundaryTriangle> *bTriangle);
-	float                   DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt, glm::vec3 *dhelp);
+	float                   DistanceBetweenVT(glm::vec3 v, BoundaryTriangle bt);
+
+	bool                    IsVinsideObj(glm::vec3 v);
+
 	void                    VetexDistanceAndGradient();
-	void                    InterpolateDistanceGradient(int i, glm::vec3 *g, float *d);
+	void                    InterpolateDistanceGradient(int i, glm::vec3 *g);
+
 	void                    GenerateBlocks(size_t xdim, size_t ydim, size_t zdim, float width, float height, float depth);
 	void                    Reset();
 	void                    firstPass(HashMap *h, int objId);

@@ -177,6 +177,7 @@ private:
 	GameTimer                timer;
 	DeformableObject         bunny;
 	DeformableObject         bunny2;
+	//DeformableObject         block;
 	HashMap                  HashTable;
 };
 
@@ -191,8 +192,9 @@ int main(void)
 	return 0;
 }
 
-FEMTest::FEMTest() : App(), timer(), HashTable(n), bunny(0.0f, 0.30f, 0.0f, false), bunny2(0.0f, 0.0f, 0.0f, true)
+FEMTest::FEMTest() : App(), timer(), HashTable(n), bunny(0.0f, 0.30f, 0.0f, false), bunny2(0.0f, 0.0f, 0.0f, true)//, block(10, 3, 3, 0.1f, 0.1f, 0.1f),
 {
+	//g_models.push_back(block);
 	//g_models.push_back(bunny);
 	g_models.push_back(bunny2);
 	mWidth = width;
@@ -254,12 +256,9 @@ void FEMTest::UpdateScene()
 	if (accumulator >= timeStep)
 	{
 		HashTable.T = timer.TotalTime();
-		
-		//debug << HashTable.T << endl;
 		for (int i = 0; i < g_models.size(); ++i)
 		{
-			g_models[i].DistanceFildAndGradientFild();
-			g_models[i].VetexDistanceAndGradient();
+			g_models[i].UpdateGradient();
 		}
 		for (int i = 0; i < g_models.size(); ++i)
 		{
@@ -268,15 +267,12 @@ void FEMTest::UpdateScene()
 		
 		for (int i = 0; i < g_models.size(); ++i)
 		{
-			///g_models[i].secondPass(&HashTable, i);
+			//g_models[i].secondPass(&HashTable, i);
 		}
-
-		//firstPass(HashTable, g_models);
-		//secondPass(HashTable, g_models);
 
 		for (int i = 0; i < g_models.size(); ++i)
 		{
-            //g_models[i].StepPhysics(timeStep);
+             g_models[i].StepPhysics(1/1200.0f);
 		}
 			
 		accumulator -= timeStep;
@@ -299,7 +295,7 @@ void FEMTest::Rendering()
 	accumulator += frameTimeQP;
 
 	++totalFrames;
-	if ((newTime - startTime)>1000)
+	if ((newTime - startTime) > 1000)
 	{
 		float elapsedTime = (newTime - startTime);
 		fps = (totalFrames / elapsedTime) * 1000;
@@ -332,14 +328,17 @@ void FEMTest::Rendering()
 	glScaled(2.0f, 2.0f, 2.0f);
 
 	for (int i = 0; i < g_models.size(); ++i)
-		g_models[i].renderModel();
-
+	     g_models[i].renderModel();
+	/*
 	//draw grid
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	for (int i = 0; i < g_models[0].gi-1; ++i)
-		for (int j = 0; j < g_models[0].gj-1; ++j)
-			for (int k = 0; k < g_models[0].gk-1; ++k)
+	for (int i = 0; i < g_models[0].gi - 1; ++i)
+	//for (int i = 2; i < 3; ++i)
+		//for (int j = 7; j < 8; ++j)
+		for (int j = 0; j < g_models[0].gj - 1; ++j)
+		//for (int k = 1; k < 2; ++k)
+			for (int k = 0; k < g_models[0].gk - 1; ++k)
 			{
 		int n1 = i * g_models[0].gj * g_models[0].gk + j * g_models[0].gk + k;
 		int n2 = n1 + 1;
@@ -350,7 +349,7 @@ void FEMTest::Rendering()
 		int n7 = (i + 1) * g_models[0].gj * g_models[0].gk + (j + 1) * g_models[0].gk + k;
 		int n8 = n7 + 1;
 
-		
+
 
 		glm::vec3 p1 = g_models[0].grid[n1];
 		glm::vec3 p2 = g_models[0].grid[n2];
@@ -377,23 +376,37 @@ void FEMTest::Rendering()
 		glVertex3f(p7.x, p7.y, p7.z);		glVertex3f(p8.x, p8.y, p8.z);
 			}
 	glEnd();
-
-	//draw distance
-	glColor3f(0.0, 1.0, 0.0);
-	glBegin(GL_LINES);
-	for (int i = 0; i < 30; ++i)
+	
+	
 	{
-		glm::vec3 p = g_models[0].grid[i];
-		glm::vec3 p2 = g_models[0].distanceFildV[i];
-		glVertex3f(p.x, p.y, p.z);
-		glVertex3f(p2.x, p2.y, p2.z);
-	}
-	glEnd();
-
-/*
-	//draw gradient
+	//draw gradient of grid
+	glColor3f(0.0, 0.5, 1.0);
 	glBegin(GL_LINES);
-	for (int i = 0; i < g_models[0].total_points; ++i)
+	for (int i = 1; i < g_models[0].gi - 1; ++i)
+	//for (int i = 2; i < 4; ++i)
+		//for (int j = 7; j < 9; ++j)
+	for (int j = 1; j < g_models[0].gj - 1; ++j)
+	//for (int k = 1; k < 3; ++k)
+		for (int k = 1; k < g_models[0].gk - 1; ++k)
+		{
+		int index = i * g_models[0].gj * g_models[0].gk + j * g_models[0].gk + k;
+		glm::vec3 p1, p2;
+		p1 = g_models[0].grid[index];
+		p2 = g_models[0].gradientFild[index];
+		//p2 = glm::normalize(p2);
+		p2 = p1 + p2;
+		glVertex3f(p1.x, p1.y, p1.z);
+		glVertex3f(p2.x, p2.y, p2.z);
+		}
+	glEnd();
+}
+	*/
+	
+	//draw gradient of vertex
+	glColor3f(1.0, 1.0, 0.0);
+	glBegin(GL_LINES);
+	for (int i = 30; i < 31; ++i)
+	//for (int i = 0; i < g_models[0].total_points; ++i)
 	{
 		glm::vec3 p1, p2;
 		p1 = g_models[0].X[i];
@@ -404,7 +417,10 @@ void FEMTest::Rendering()
 		glVertex3f(p2.x, p2.y, p2.z);
 	}
 	glEnd();
+/*
 	
+	//is point in tetrahedron
+
 		glColor3f(0.75, 0.75, 0.75);
 		{
 		glBegin(GL_LINES);
@@ -425,6 +441,7 @@ void FEMTest::Rendering()
 		glEnd();
 }
 */
+/*
 		//draw points	
 		glBegin(GL_POINTS);
 		    glm::vec3 p = glm::vec3(g_models[0].ABmx, g_models[0].ABmy, g_models[0].ABmz);
@@ -434,7 +451,7 @@ void FEMTest::Rendering()
 			glm::vec3 p2 = glm::vec3(g_models[0].ABMx, g_models[0].ABMy, g_models[0].ABMz);
 			glColor3f(1.0f, 1.0f, 0.0f);
 			glVertex3f(p2.x, p2.y, p2.z);
-		glEnd();
+		glEnd();*/
 
 }
 void FEMTest::onMouseWheel(GLFWwindow* window, double x, double y)
@@ -575,7 +592,7 @@ void FEMTest::firstPass(HashMap H, vector<DeformableObject> *g_models)
 			int h = ((x * p1) ^ (y * p2) ^ (z * p3)) % n;
 			if (h < 0) h = -h;
 			//cout << l << endl;
-			debug << p.x << " " << p.y << " " << p.z << endl;
+			//debug << p.x << " " << p.y << " " << p.z << endl;
 			//cout << x << " "<< y <<  " "<< z << endl;
 			//debug << h << endl;
 			if (H.cell[h].T != H.T)
